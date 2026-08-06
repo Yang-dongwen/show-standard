@@ -28,7 +28,8 @@ public class AuthFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         return !path.startsWith("/api/")
             || "/api/auth/login".equals(path)
-            || "/api/auth/register".equals(path);
+            || "/api/auth/register".equals(path)
+            || "/api/auth/register-status".equals(path);
     }
 
     @Override

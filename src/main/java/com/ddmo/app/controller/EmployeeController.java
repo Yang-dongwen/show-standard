@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/employees")
 public class EmployeeController {
@@ -31,6 +33,12 @@ public class EmployeeController {
         @RequestParam(defaultValue = "10") int size
     ) {
         return ApiResponse.ok(barbershopService.listEmployeesPaged(keyword, page, size));
+    }
+
+    /** 消费/收银下拉：全部在岗员工 */
+    @GetMapping("/options")
+    public ApiResponse<List<Employee>> options() {
+        return ApiResponse.ok(barbershopService.listActiveEmployeeOptions());
     }
 
     @PostMapping

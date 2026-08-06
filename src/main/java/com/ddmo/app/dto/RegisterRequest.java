@@ -4,6 +4,8 @@ public class RegisterRequest {
     private String username;
     private String password;
     private String nickname;
+    /** 当 app.register.mode=invite 时必填 */
+    private String inviteCode;
 
     public String getUsername() {
         return username;
@@ -27,6 +29,14 @@ public class RegisterRequest {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getInviteCode() {
+        return inviteCode;
+    }
+
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
     }
 }
 

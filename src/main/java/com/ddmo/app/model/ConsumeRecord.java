@@ -10,18 +10,28 @@ public class ConsumeRecord {
     private String serviceTypeId;
     private BigDecimal amount;
     private String remark;
+    private String status;
+    private String relatedId;
     private LocalDateTime createdAt;
 
     public ConsumeRecord() {
     }
 
-    public ConsumeRecord(String id, String customerId, String employeeId, String serviceTypeId, BigDecimal amount, String remark, LocalDateTime createdAt) {
+    public ConsumeRecord(String id, String customerId, String employeeId, String serviceTypeId,
+                         BigDecimal amount, String remark, LocalDateTime createdAt) {
+        this(id, customerId, employeeId, serviceTypeId, amount, remark, "normal", null, createdAt);
+    }
+
+    public ConsumeRecord(String id, String customerId, String employeeId, String serviceTypeId,
+                         BigDecimal amount, String remark, String status, String relatedId, LocalDateTime createdAt) {
         this.id = id;
         this.customerId = customerId;
         this.employeeId = employeeId;
         this.serviceTypeId = serviceTypeId;
         this.amount = amount;
         this.remark = remark;
+        this.status = status;
+        this.relatedId = relatedId;
         this.createdAt = createdAt;
     }
 
@@ -73,6 +83,22 @@ public class ConsumeRecord {
         this.remark = remark;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getRelatedId() {
+        return relatedId;
+    }
+
+    public void setRelatedId(String relatedId) {
+        this.relatedId = relatedId;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -81,4 +107,3 @@ public class ConsumeRecord {
         this.createdAt = createdAt;
     }
 }
-

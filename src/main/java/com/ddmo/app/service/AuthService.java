@@ -1,5 +1,7 @@
 package com.ddmo.app.service;
 
+import com.ddmo.app.config.AppAuthProperties;
+import com.ddmo.app.config.AppRegisterProperties;
 import com.ddmo.app.dto.LoginRequest;
 import com.ddmo.app.dto.RegisterRequest;
 import com.ddmo.app.security.JwtService;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -21,12 +24,22 @@ public class AuthService {
     private final JdbcTemplate jdbcTemplate;
     private final JwtService jwtService;
     private final SnowflakeIdGenerator idGenerator;
+    private final AppAuthProperties authProperties;
+    private final AppRegisterProperties registerProperties;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthService(JdbcTemplate jdbcTemplate, JwtService jwtService, SnowflakeIdGenerator idGenerator) {
+    public AuthService(
+        JdbcTemplate jdbcTemplate,
+        JwtService jwtService,
+        SnowflakeIdGenerator idGenerator,
+        AppAuthProperties authProperties,
+        AppRegisterProperties registerProperties
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.jwtService = jwtService;
         this.idGenerator = idGenerator;
+        this.authProperties = authProperties;
+        this.registerProperties = registerProperties;
     }
 
     public Map<String, Object> login(LoginRequest request) {
@@ -48,16 +61,7 @@ public class AuthService {
         }
 
         String dbHash = String.valueOf(row.get("password_hash"));
-        boolean ok;
-        if (dbHash.startsWith("$2a$") || dbHash.startsWith("$2b$") || dbHash.startsWith("$2y$")) {
-            ok = passwordEncoder.matches(request.getPassword(), dbHash);
-        } else {
-            ok = request.getPassword().equals(dbHash);
-            if (ok) {
-                jdbcTemplate.update("UPDATE t_manager SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    passwordEncoder.encode(request.getPassword()), row.get("id"));
-            }
-        }
+        boolean ok = matchesPassword(request.getPassword(), dbHash, ((Number) row.get("id")).longValue());
         if (!ok) {
             throw new IllegalArgumentException("用户名或密码错误");
         }
@@ -70,6 +74,7 @@ public class AuthService {
         user.put("nickname", String.valueOf(row.get("nickname")));
         user.put("avatar", "");
         user.put("role", "admin");
+        user.put("tenantId", String.valueOf(tenantId));
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
@@ -91,7 +96,29 @@ public class AuthService {
         user.put("avatar", "");
         user.put("role", "admin");
         user.put("status", String.valueOf(row.get("status")));
+        user.put("tenantId", String.valueOf(tenantId));
         return user;
+    }
+
+    /**
+     * 注册前公开状态：是否允许注册、当前模式。
+     */
+    public Map<String, Object> registerStatus() {
+        Long count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_manager", Long.class);
+        long managers = count == null ? 0 : count;
+        String mode = normalizeMode(registerProperties.getMode());
+        boolean allowed = switch (mode) {
+            case "open" -> true;
+            case "invite" -> true;
+            case "first-only" -> managers == 0;
+            default -> managers == 0;
+        };
+        Map<String, Object> data = new HashMap<>();
+        data.put("mode", mode);
+        data.put("allowed", allowed);
+        data.put("hasManager", managers > 0);
+        data.put("requireInviteCode", "invite".equals(mode));
+        return data;
     }
 
     @Transactional
@@ -101,6 +128,9 @@ public class AuthService {
             || request.getNickname() == null || request.getNickname().isBlank()) {
             throw new IllegalArgumentException("用户名、密码、昵称不能为空");
         }
+
+        enforceRegisterPolicy(request);
+
         String username = request.getUsername().trim();
         String password = request.getPassword().trim();
         String nickname = request.getNickname().trim();
@@ -151,18 +181,69 @@ public class AuthService {
         long managerId = ((Number) row.get("id")).longValue();
         String dbHash = String.valueOf(row.get("password_hash"));
 
-        boolean match;
-        if (dbHash.startsWith("$2a$") || dbHash.startsWith("$2b$") || dbHash.startsWith("$2y$")) {
-            match = passwordEncoder.matches(oldPassword, dbHash);
-        } else {
-            match = oldPassword.equals(dbHash);
-        }
-        if (!match) {
+        if (!matchesPassword(oldPassword, dbHash, managerId)) {
             throw new IllegalArgumentException("旧密码错误");
         }
 
         String newHash = passwordEncoder.encode(newPassword);
         jdbcTemplate.update("UPDATE t_manager SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newHash, managerId);
+    }
+
+    private void enforceRegisterPolicy(RegisterRequest request) {
+        String mode = normalizeMode(registerProperties.getMode());
+        Long count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_manager", Long.class);
+        long managers = count == null ? 0 : count;
+
+        switch (mode) {
+            case "open" -> {
+                // 允许任意注册
+            }
+            case "invite" -> {
+                String expected = registerProperties.getInviteCode() == null ? "" : registerProperties.getInviteCode().trim();
+                if (expected.isEmpty()) {
+                    throw new IllegalArgumentException("系统未配置邀请码，无法注册");
+                }
+                String provided = request.getInviteCode() == null ? "" : request.getInviteCode().trim();
+                if (!expected.equals(provided)) {
+                    throw new IllegalArgumentException("邀请码无效");
+                }
+            }
+            case "first-only" -> {
+                if (managers > 0) {
+                    throw new IllegalArgumentException("已存在店长账号，禁止开放注册（mode=first-only）");
+                }
+            }
+            default -> {
+                if (managers > 0) {
+                    throw new IllegalArgumentException("当前不允许注册");
+                }
+            }
+        }
+    }
+
+    private boolean matchesPassword(String raw, String dbHash, long managerId) {
+        if (dbHash.startsWith("$2a$") || dbHash.startsWith("$2b$") || dbHash.startsWith("$2y$")) {
+            return passwordEncoder.matches(raw, dbHash);
+        }
+        if (!authProperties.isAllowPlaintextPassword()) {
+            throw new IllegalArgumentException("账号密码格式已过期，请联系管理员重置或开启明文密码兼容迁移");
+        }
+        boolean ok = raw.equals(dbHash);
+        if (ok) {
+            jdbcTemplate.update(
+                "UPDATE t_manager SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                passwordEncoder.encode(raw),
+                managerId
+            );
+        }
+        return ok;
+    }
+
+    private static String normalizeMode(String mode) {
+        if (mode == null || mode.isBlank()) {
+            return "first-only";
+        }
+        return mode.trim().toLowerCase(Locale.ROOT);
     }
 
     private void insertDefaultServiceTypes(long tenantId) {

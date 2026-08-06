@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS t_recharge_record (
     customer_id BIGINT NOT NULL,
     amount NUMERIC(12, 2) NOT NULL,
     remark VARCHAR(255) NOT NULL DEFAULT '',
+    status VARCHAR(16) NOT NULL DEFAULT 'normal',
+    related_id BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_recharge_tenant_customer ON t_recharge_record(tenant_id, customer_id);
@@ -65,6 +67,8 @@ CREATE TABLE IF NOT EXISTS t_consume_record (
     service_type_id BIGINT NOT NULL,
     amount NUMERIC(12, 2) NOT NULL,
     remark VARCHAR(255) NOT NULL DEFAULT '',
+    status VARCHAR(16) NOT NULL DEFAULT 'normal',
+    related_id BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_consume_tenant_customer ON t_consume_record(tenant_id, customer_id);
@@ -81,3 +85,28 @@ CREATE TABLE IF NOT EXISTS t_audit_log (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_audit_tenant_created ON t_audit_log(tenant_id, created_at DESC);
+
+-- 账户余额快照（原子扣减/充值的单一真相源）
+CREATE TABLE IF NOT EXISTS t_account (
+    customer_id BIGINT PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_account_tenant ON t_account(tenant_id);
+
+-- 租户设置（今日目标等）
+CREATE TABLE IF NOT EXISTS t_tenant_setting (
+    tenant_id BIGINT NOT NULL,
+    setting_key VARCHAR(64) NOT NULL,
+    setting_value VARCHAR(500) NOT NULL DEFAULT '',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, setting_key)
+);
+
+-- schema 迁移版本
+CREATE TABLE IF NOT EXISTS t_schema_meta (
+    meta_key VARCHAR(64) PRIMARY KEY,
+    meta_value VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

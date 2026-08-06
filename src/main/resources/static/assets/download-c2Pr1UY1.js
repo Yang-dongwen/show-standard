@@ -1,0 +1,1 @@
+import{v as o}from"./index-sTPeO0Bp.js";import{a as c}from"./http-B10bZOO2.js";async function l(r,a){try{const e=await c(r),t=document.createElement("a");t.href=URL.createObjectURL(e),t.download=a,t.click(),URL.revokeObjectURL(t.href),o.success("导出成功")}catch(e){throw o.error(e.message||"导出失败"),e}}export{l as d};

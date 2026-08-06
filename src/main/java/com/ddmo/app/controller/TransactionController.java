@@ -3,10 +3,12 @@ package com.ddmo.app.controller;
 import com.ddmo.app.dto.ApiResponse;
 import com.ddmo.app.dto.ConsumeRequest;
 import com.ddmo.app.dto.RechargeRequest;
+import com.ddmo.app.dto.ReverseRequest;
 import com.ddmo.app.model.ConsumeRecord;
 import com.ddmo.app.model.RechargeRecord;
 import com.ddmo.app.service.BarbershopService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +33,24 @@ public class TransactionController {
     @PostMapping("/consume")
     public ApiResponse<ConsumeRecord> consume(@RequestBody ConsumeRequest request) {
         return ApiResponse.ok("消费登记成功", barbershopService.createConsume(request));
+    }
+
+    @PostMapping("/recharge/{id}/reverse")
+    public ApiResponse<RechargeRecord> reverseRecharge(
+        @PathVariable String id,
+        @RequestBody(required = false) ReverseRequest request
+    ) {
+        String reason = request == null ? null : request.getReason();
+        return ApiResponse.ok("充值已冲正", barbershopService.reverseRecharge(id, reason));
+    }
+
+    @PostMapping("/consume/{id}/reverse")
+    public ApiResponse<ConsumeRecord> reverseConsume(
+        @PathVariable String id,
+        @RequestBody(required = false) ReverseRequest request
+    ) {
+        String reason = request == null ? null : request.getReason();
+        return ApiResponse.ok("消费已冲正", barbershopService.reverseConsume(id, reason));
     }
 
     @GetMapping

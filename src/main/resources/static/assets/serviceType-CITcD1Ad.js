@@ -1,0 +1,1 @@
+import{r as t}from"./http-B10bZOO2.js";function s(){return t("/api/config/services")}function c(e){return t("/api/config/services",{method:"POST",body:JSON.stringify(e)})}function n(e,i){return t(`/api/config/services/${e}`,{method:"PUT",body:JSON.stringify(i)})}function o(e){return t(`/api/config/services/${e}/toggle-status`,{method:"PATCH"})}export{c,s as f,o as t,n as u};

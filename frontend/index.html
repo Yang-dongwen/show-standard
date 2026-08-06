@@ -3,50 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Show</title>
+  <title>Show · 理发店会员管理</title>
   <style>
-    html, body { background: transparent !important; margin: 0; overflow: hidden; font-family: "Microsoft YaHei", "Segoe UI", sans-serif; border-radius: 12px; }
+    html, body {
+      margin: 0;
+      background: #f0f3f9;
+      font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    }
     #app-loader {
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      height: 100vh; width: 100vw; background-color: #0f172a; position: absolute; top:0; left:0; z-index: 9999;
-      border-radius: 12px; /* 窗口圆角 - 与 JavaFX 保持一致：12px */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      background: #0f172a;
+      color: #e2e8f0;
     }
-    .ddmo-spinner {
-      position: relative; width: 120px; height: 120px; display: flex; justify-content: center; align-items: center;
+    #app-loader .logo {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      margin-bottom: 12px;
     }
-    .ddmo-spinner::before, .ddmo-spinner::after {
-      content: ''; position: absolute; border-radius: 50%;
+    #app-loader .tip {
+      font-size: 13px;
+      color: #94a3b8;
     }
-    .ddmo-spinner::before {
-      width: 100%; height: 100%; box-shadow: inset 0 0 20px #8b5cf6, 0 0 20px #3b82f6;
-      animation: ddmo-pulse 2s linear infinite;
-    }
-    .ddmo-spinner::after {
-      width: 80%; height: 80%; border: 3px solid transparent; 
-      border-top-color: #3b82f6; border-bottom-color: #8b5cf6; 
-      animation: ddmo-spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-    }
-    .ddmo-logo {
-      font-weight: 700; font-size: 24px; color: #ffffff; text-shadow: 0 0 10px #8b5cf6;
-      animation: ddmo-glow 2s ease-in-out infinite alternate; letter-spacing: 2px;
-    }
-    .ddmo-text {
-      margin-top: 40px; color: #94a3b8; font-size: 14px; letter-spacing: 3px; 
-      animation: ddmo-fade 1.5s infinite alternate; text-transform: uppercase;
-    }
-    @keyframes ddmo-pulse { 0% { transform: scale(0.9); opacity: 0.7; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(0.9); opacity: 0.7; } }
-    @keyframes ddmo-spin { 100% { transform: rotate(360deg); } }
-    @keyframes ddmo-glow { from { text-shadow: 0 0 10px #8b5cf6, 0 0 20px #8b5cf6; } to { text-shadow: 0 0 20px #3b82f6, 0 0 30px #3b82f6; } }
-    @keyframes ddmo-fade { from { opacity: 0.3; } to { opacity: 1; } }
   </style>
 </head>
 <body>
   <div id="app">
     <div id="app-loader">
-      <div class="ddmo-spinner">
-        <span class="ddmo-logo">SHOW</span>
-      </div>
-      <div class="ddmo-text">Initializing Systems...</div>
+      <div class="logo">Show</div>
+      <div class="tip">正在加载...</div>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>

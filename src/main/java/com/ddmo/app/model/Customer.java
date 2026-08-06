@@ -1,5 +1,6 @@
 package com.ddmo.app.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class Customer {
@@ -9,18 +10,25 @@ public class Customer {
     private String verifyCode;
     private String remark;
     private String status;
+    private BigDecimal balance;
     private LocalDateTime createdAt;
 
     public Customer() {
     }
 
     public Customer(String id, String name, String phone, String verifyCode, String remark, String status, LocalDateTime createdAt) {
+        this(id, name, phone, verifyCode, remark, status, null, createdAt);
+    }
+
+    public Customer(String id, String name, String phone, String verifyCode, String remark, String status,
+                    BigDecimal balance, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.phone = phone;
         this.verifyCode = verifyCode;
         this.remark = remark;
         this.status = status;
+        this.balance = balance;
         this.createdAt = createdAt;
     }
 
@@ -70,6 +78,14 @@ public class Customer {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 
     public LocalDateTime getCreatedAt() {

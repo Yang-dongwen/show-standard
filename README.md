@@ -1,91 +1,118 @@
-# Show · 理发店极简会员管理系统
+# Show · 理发店会员管理系统
 
-> 面向中小理发店、社区店、夫妻店的一体化轻量客户管理工具。  
-> 目标是：安装即用、操作直接、数据清晰、成本可控。
+> 面向中小理发店、社区店、夫妻店的轻量会员与收银工具。  
+> **纯 Web 交付**：Spring Boot 内嵌前端，浏览器打开即可使用，无需桌面客户端。
 
 ![Java](https://img.shields.io/badge/Java-17-2f6f4f)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.1.5-2f6f4f)
+![Spring%20Boot](https://img.shields.io/badge/Spring%20Boot-3.1.5-2f6f4f)
 ![Vue](https://img.shields.io/badge/Vue-3.4-2f6f4f)
+![Element%20Plus](https://img.shields.io/badge/Element%20Plus-2.x-409eff)
 ![SQLite](https://img.shields.io/badge/SQLite-3.46-2f6f4f)
 ![License](https://img.shields.io/badge/License-MIT-2f6f4f)
 
+---
+
 ## 为什么是它
 
-- 不依赖外部数据库服务，内置 SQLite，单机可运行，维护门槛低。
-- 登录、注册、JWT 鉴权、租户隔离完整闭环，避免“裸奔接口”。
-- 聚焦理发店高频场景：会员、充值、消费、员工、服务、业绩、审计。
-- UI 统一为简洁时尚风格，减少培训成本，新员工也能快速上手。
+- **零外部数据库**：内置 SQLite，数据落在本机 `~/.show/`，部署简单。
+- **安全闭环**：JWT 鉴权 + 租户隔离 + 审计日志，业务接口默认需登录。
+- **聚焦高频场景**：会员、充值、消费（校验码）、员工、服务、报表、审计。
+- **现代 Web UI**：Vue 3 + Element Plus，浅色侧栏中后台布局，适配浏览器使用。
 
-## 主要功能
+---
 
-- 账号体系
-  - 店长账号注册与登录
-  - 修改密码
-  - 所有业务接口默认鉴权（除登录/注册）
-- 会员管理
-  - 新增/编辑会员、状态切换、分页查询
-  - 支持设置 4 位校验码（默认手机号后四位）
-  - 新增会员可直接录入初次充值金额
-- 充值与消费
-  - 会员下拉支持模糊检索（姓名/手机号）
-  - 消费时强校验会员校验码（与后端存储值比对）
-  - 交易流水分页查询与导出
-- 员工与服务
-  - 员工管理、服务类型管理（均支持分页）
-  - 注册后自动初始化默认服务类型（按租户）
-- 统计与审计
-  - 经营概览、服务分布、员工业绩（分页）
-  - 审计日志分页，关键操作可追溯
+## 功能与页面对应
+
+| 页面 | 路由 | 能力说明 |
+|------|------|----------|
+| **登录 / 注册** | `/#/login` | 店长登录；记住用户名；按注册策略展示注册入口（默认仅允许首个店长） |
+| **经营总览** | `/#/app/dashboard` | 活跃会员、总余额、今日充值/消费；今日目标（本地记忆）；快捷入口；经营建议 |
+| **会员管理** | `/#/app/customers` | 分页列表、搜索、新增/编辑（抽屉）、校验码显隐、停用/恢复、导出 CSV |
+| **充值消费** | `/#/app/transactions` | 充值入账；消费扣款（员工+服务+金额联动默认价+校验码）；交易流水与按日期导出 |
+| **员工管理** | `/#/app/employees` | 员工增改、在岗/停用、分页搜索 |
+| **报表分析** | `/#/app/reports` | 日期区间汇总、服务分布、员工业绩、导出业绩 CSV |
+| **审计日志** | `/#/app/audit` | 关键操作记录查询与分页浏览 |
+| **服务项目** | `/#/app/settings` | 服务类型与默认价格 CRUD、启用/停用 |
+| **使用帮助** | `/#/app/help` | 使用说明、本机/局域网访问地址提示 |
+
+### 账号与安全
+
+- 登录 / 注册（策略：`first-only` / `open` / `invite`，见 `application.yml`）
+- 修改密码（用户下拉菜单）
+- JWT 鉴权；除登录、注册、注册状态查询外接口需 Bearer Token
+- 租户隔离：业务数据按 `tenant_id` 隔离
+
+### 会员与收银
+
+- 会员：姓名、手机号、4 位校验码（默认可取手机号后四位）、备注、初次充值
+- 账户余额：`t_account` 维护，消费侧原子扣减，列表直接展示余额
+- 消费：选择会员 / 员工 / 服务 → 金额按服务默认价联动（可改）→ 校验码校验后扣款
+- 充值 / 交易流水分页；CSV 导出（浏览器下载）
+
+### 统计与配置
+
+- 经营总览 KPI 卡片
+- 报表：充值/消费/净收入、服务分布条、员工业绩
+- 服务项目默认价；注册后按租户初始化默认服务
+- 审计日志可检索
+
+### 后端扩展能力（接口已具备，部分 UI 未单独成页）
+
+- 充值/消费冲正
+- 数据备份与排队恢复（重启生效）
+- 租户设置（如目标等，见 `/api/settings`）
+- 在岗员工/服务 options 接口
+
+更多开发说明见 [`docs/dev/README.md`](./docs/dev/README.md)。
+
+---
 
 ## 截图展示
 
-- 登录页与注册弹窗  
-  ![登录与注册](./docs/screenshots/login-register.png)
-- 工作台总览  
-  ![工作台](./docs/screenshots/dashboard-overview.png)
-- 会员管理与模糊检索下拉  
-  ![会员管理](./docs/screenshots/customer-management.png)
-- 充值/消费与校验码校验  
-  ![充值消费](./docs/screenshots/transaction-verify-code.png)
-- 统计报表与审计日志  
-  ![报表审计](./docs/screenshots/report-audit.png)
-  ![报表审计](./docs/screenshots/stat.png)
 
-## 项目亮点
+![登录页](./docs/screenshots/01-login.png)
 
-- 极简上手：围绕理发店真实日常，不做过度设计。
-- 安全可用：统一鉴权 + 审计日志 + 租户隔离。
-- 离线友好：SQLite 本地持久化，无需单独部署数据库。
-- 可打包分发：可直接产出可执行程序，适合门店终端落地。
+![02-dashboard.png](docs/screenshots/02-dashboard.png)
+---
 
 ## 系统架构
 
 ```mermaid
 flowchart LR
-  A["Vue 3 + Vite 前端"] --> B["Spring Boot API"]
-  B --> C["JWT 鉴权"]
-  C --> D["租户上下文 TenantContext"]
-  D --> E["SQLite 本地数据库"]
-  B --> F["审计日志 recordLog"]
+  Browser["浏览器"] --> SPA["Vue 3 + Element Plus SPA"]
+  SPA --> API["Spring Boot :8080"]
+  API --> JWT["JWT + TenantContext"]
+  JWT --> DB["SQLite ~/.show/show.db"]
+  API --> Audit["审计日志"]
+  API --> Static["内嵌 static 资源"]
 ```
 
-- 前端：`frontend`（Vue 3 单页应用）
-- 后端：`src/main/java`（Spring Boot + JDBC）
-- 数据库：SQLite（默认文件位于 `${user.home}/.show/show.db`）
-- 租户隔离：所有核心业务表包含 `tenant_id`
-- 安全策略：JWT 承载租户信息（加密后写入 token claim）
+| 层级 | 技术 | 说明 |
+|------|------|------|
+| 前端 | Vue 3.4、Vue Router、Vite 5、Element Plus 2 | Hash 路由；构建产物输出到后端 `static` |
+| 后端 | Spring Boot 3.1.5、JDBC、JJWT | 默认端口 `8080` |
+| 数据库 | SQLite 3.46 | 单机文件，WAL + 单连接池 |
+
+---
 
 ## 数据模型（核心表）
 
-- `t_manager`：店长账号
-- `t_customer`：会员（含 `verify_code`）
-- `t_employee`：员工
-- `t_service_type`：服务类型
-- `t_recharge_record`：充值记录
-- `t_consume_record`：消费记录
-- `t_audit_log`：审计日志
+| 表 | 说明 |
+|----|------|
+| `t_manager` | 店长账号 |
+| `t_customer` | 会员（含 `verify_code`） |
+| `t_account` | 会员余额 |
+| `t_employee` | 员工 |
+| `t_service_type` | 服务类型 |
+| `t_recharge_record` | 充值记录 |
+| `t_consume_record` | 消费记录 |
+| `t_audit_log` | 审计日志 |
 
-建表脚本见：`src/main/resources/schema.sql`
+建表脚本：`src/main/resources/schema.sql`。
+
+密钥与配置：`~/.show/secrets.properties`（JWT 等，首次启动生成）。
+
+---
 
 ## 依赖与版本
 
@@ -93,51 +120,127 @@ flowchart LR
 
 - Java 17
 - Spring Boot 3.1.5
-- sqlite-jdbc 3.46.0.0
+- sqlite-jdbc 3.46.x
 - JJWT 0.12.5
-- Maven Compiler Plugin 3.11.0
-- JavaFX 17.0.2（桌面壳相关）
 
 ### 前端
 
-- Node.js 18+（建议）
-- Vue 3.4.x
-- Vue Router 4.3.x
-- Vite 5.4.x
-- @vitejs/plugin-vue 5.0.x
+- Node.js 18+（建议 LTS）
+- Vue 3.4.x、Vue Router 4.3.x
+- Vite 5.4.x、Element Plus 2.x、@element-plus/icons-vue
+
+---
 
 ## 本地运行
 
-1. 安装 JDK 17、Node.js、Maven。
-2. 执行前端构建：`frontend` 目录 `npm install` + `npm run build`。
-3. 执行后端启动或打包（见下节）。
-4. 首次运行会自动创建数据库目录与表结构。
+### 环境
 
-## 一键打包
+- JDK 17、Maven 3.8+、Node.js 18+
 
-项目已提供脚本：`compile_all.ps1`
+### 生产式（静态页由 jar 提供）
+
+```powershell
+cd frontend
+npm install
+npm run build
+cd ..
+mvn spring-boot:run
+```
+
+浏览器打开：**http://localhost:8080**
+
+或使用一键脚本：
+
+```powershell
+.\compile_all.ps1
+java -jar target\ddmo-1.0.0.jar
+```
+
+### 开发式（前端 HMR）
+
+```powershell
+# 终端 1
+mvn spring-boot:run
+
+# 终端 2
+cd frontend
+npm run dev
+```
+
+浏览器打开：**http://127.0.0.1:3000**（`/api` 代理到 8080）。
+
+首次启动会自动创建 `~/.show/show.db` 与表结构。
+
+---
+
+## 一键构建
 
 ```powershell
 .\compile_all.ps1
 ```
 
-脚本会依次完成：
+流程：
 
-1. 前端构建
-2. 后端 Maven 打包
-3. jpackage 生成应用目录
-4. 输出 `Show.zip` 与 `Show.exe`
+1. `frontend`：`npm install` + `npm run build` → `src/main/resources/static`
+2. 根目录：`mvn clean package -DskipTests`
+3. 产物：`target\ddmo-1.0.0.jar`
 
-## 后续演进方向
+运行：
 
-- 多角色权限（店长/店员）与细粒度菜单权限。
-- 会员标签、回访提醒、生日关怀、沉睡唤醒。
-- 套餐卡/次卡/折扣券/积分体系。
-- 收银扩展：多支付方式、交班对账、日结报表。
-- 数据备份恢复、门店迁移、云端同步。
-- 连锁门店管理：跨店汇总、店铺维度经营分析。
+```powershell
+java -jar target\ddmo-1.0.0.jar
+```
+
+---
+
+## 目录结构（简要）
+
+```
+show-standard/
+├── frontend/                 # Vue 3 + Element Plus
+│   └── src/
+│       ├── views/            # 登录与各业务页
+│       ├── layouts/          # 主布局（浅色侧栏）
+│       ├── components/       # StatCard / MoneyText 等
+│       └── api/              # 接口封装
+├── src/main/java/com/ddmo/app/
+│   ├── DdmoApplication.java  # 启动入口
+│   ├── controller/           # REST
+│   ├── service/
+│   └── security/             # JWT、租户
+├── src/main/resources/
+│   ├── application.yml
+│   ├── schema.sql
+│   └── static/               # 前端构建输出
+├── docs/
+│   ├── screenshots/          # 界面截图（待更新）
+│   └── dev/README.md         # 开发与 API 说明
+└── compile_all.ps1
+```
+
+---
+
+## 配置要点
+
+| 配置 | 位置 | 说明 |
+|------|------|------|
+| 端口 | `server.port` | 默认 `8080` |
+| 注册策略 | `app.register.mode` | `first-only` / `open` / `invite` |
+| 邀请码 | `app.register.invite-code` / 环境变量 `SHOW_INVITE_CODE` | `invite` 模式使用 |
+| JWT | `~/.show/secrets.properties` | 运行时密钥，勿提交仓库 |
+
+---
+
+## 后续演进（可选）
+
+- 多角色（店长 / 店员）与菜单权限
+- 会员标签、回访与沉睡唤醒
+- 次卡 / 套餐 / 积分
+- 交班对账、日结
+- 云端同步与连锁汇总
+
+---
 
 ## License
 
 MIT
-

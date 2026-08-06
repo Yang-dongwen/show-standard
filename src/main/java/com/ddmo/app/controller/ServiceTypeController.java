@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -25,9 +26,23 @@ public class ServiceTypeController {
         this.barbershopService = barbershopService;
     }
 
+    /**
+     * 列表。传 page 返回分页；否则返回全量（兼容旧前端）。
+     */
     @GetMapping
-    public ApiResponse<List<ServiceType>> list() {
-        return ApiResponse.ok(barbershopService.listServiceTypes());
+    public ApiResponse<?> list(
+        @RequestParam(required = false) Integer page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        if (page == null) {
+            return ApiResponse.ok(barbershopService.listServiceTypes());
+        }
+        return ApiResponse.ok(barbershopService.listServiceTypesPaged(page, size));
+    }
+
+    @GetMapping("/options")
+    public ApiResponse<List<ServiceType>> options() {
+        return ApiResponse.ok(barbershopService.listActiveServiceOptions());
     }
 
     @PostMapping
@@ -45,4 +60,3 @@ public class ServiceTypeController {
         return ApiResponse.ok("状态已更新", barbershopService.toggleServiceTypeStatus(id));
     }
 }
-

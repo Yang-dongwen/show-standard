@@ -1,5 +1,5 @@
 server:
-  port: 0
+  port: 8080
 
 spring:
   application:
@@ -9,6 +9,13 @@ spring:
     username: show
     password: show
     driver-class-name: org.sqlite.JDBC
+    hikari:
+      # SQLite 写并发弱，收敛连接池避免 database is locked
+      maximum-pool-size: 1
+      minimum-idle: 1
+      connection-timeout: 30000
+      max-lifetime: 0
+      pool-name: show-sqlite
   main:
     lazy-initialization: true
   jmx:
@@ -17,6 +24,10 @@ spring:
     init:
       mode: always
       encoding: UTF-8
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
 
 logging:
   level:
@@ -25,6 +36,16 @@ logging:
 
 app:
   jwt:
-    secret: 4f5f39309b8d5d75f2af1e46f6718cde4fcf39a267d35a8fd153b2b9d28036ab
+    # 运行时优先使用 ~/.show/secrets.properties；以下仅为启动引导占位
+    secret: ${SHOW_JWT_SECRET:bootstrap-placeholder-change-me-32bytes-min!!}
     expire-minutes: 720
-    tenant-aes-key: 734bf7fa2ac84ed6a2e839da8f0200c2
+    tenant-aes-key: ${SHOW_TENANT_AES_KEY:bootstrap-aes-placeholder-key}
+  auth:
+    # 是否允许校验并迁移历史明文密码（新部署建议 false）
+    allow-plaintext-password: false
+  register:
+    # open=任意注册 | first-only=仅首个店长 | invite=需邀请码
+    mode: first-only
+    invite-code: ${SHOW_INVITE_CODE:}
+  backup:
+    dir: ${user.home}/.show/backups

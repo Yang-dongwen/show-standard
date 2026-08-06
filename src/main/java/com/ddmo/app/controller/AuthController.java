@@ -34,6 +34,12 @@ public class AuthController {
         return ApiResponse.ok("注册成功", null);
     }
 
+    /** 公开：查询当前是否允许注册及模式 */
+    @GetMapping("/register-status")
+    public ApiResponse<Map<String, Object>> registerStatus() {
+        return ApiResponse.ok(authService.registerStatus());
+    }
+
     @PostMapping("/logout")
     public ApiResponse<Void> logout() {
         return ApiResponse.ok("已退出登录", null);

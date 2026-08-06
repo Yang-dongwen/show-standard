@@ -8,16 +8,25 @@ public class RechargeRecord {
     private String customerId;
     private BigDecimal amount;
     private String remark;
+    private String status;
+    private String relatedId;
     private LocalDateTime createdAt;
 
     public RechargeRecord() {
     }
 
     public RechargeRecord(String id, String customerId, BigDecimal amount, String remark, LocalDateTime createdAt) {
+        this(id, customerId, amount, remark, "normal", null, createdAt);
+    }
+
+    public RechargeRecord(String id, String customerId, BigDecimal amount, String remark,
+                          String status, String relatedId, LocalDateTime createdAt) {
         this.id = id;
         this.customerId = customerId;
         this.amount = amount;
         this.remark = remark;
+        this.status = status;
+        this.relatedId = relatedId;
         this.createdAt = createdAt;
     }
 
@@ -53,6 +62,22 @@ public class RechargeRecord {
         this.remark = remark;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getRelatedId() {
+        return relatedId;
+    }
+
+    public void setRelatedId(String relatedId) {
+        this.relatedId = relatedId;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -61,4 +86,3 @@ public class RechargeRecord {
         this.createdAt = createdAt;
     }
 }
-
