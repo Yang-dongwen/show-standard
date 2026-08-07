@@ -163,8 +163,15 @@ const form = reactive({
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入会员姓名', trigger: 'blur' }],
-  phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
+  name: [
+    { required: true, message: '请输入会员姓名', trigger: 'blur' },
+    { max: 32, message: '会员姓名最多32个字', trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1\d{10}$/, message: '手机号须为11位且以1开头', trigger: 'blur' }
+  ],
+  remark: [{ max: 200, message: '备注最多200个字', trigger: 'blur' }],
   verifyCode: [
     {
       validator: (_r, v, cb) => {

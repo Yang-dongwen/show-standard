@@ -122,4 +122,27 @@ public class DbDialect {
         }
         return "DATE_SUB(NOW(), INTERVAL " + (-days) + " DAY)";
     }
+
+    /**
+     * 转字符串：SQLite TEXT / MySQL CHAR。
+     */
+    public String castAsString(String expr) {
+        if (isSqlite()) {
+            return "CAST(" + expr + " AS TEXT)";
+        }
+        return "CAST(" + expr + " AS CHAR)";
+    }
+
+    /**
+     * 字符串拼接：SQLite {@code ||} / MySQL {@code CONCAT}。
+     */
+    public String concat(String... parts) {
+        if (parts == null || parts.length == 0) {
+            return isSqlite() ? "''" : "''";
+        }
+        if (isSqlite()) {
+            return String.join(" || ", parts);
+        }
+        return "CONCAT(" + String.join(", ", parts) + ")";
+    }
 }

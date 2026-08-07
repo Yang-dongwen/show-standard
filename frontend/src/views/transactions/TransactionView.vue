@@ -247,15 +247,26 @@ const consumeForm = reactive({
   remark: ''
 })
 
+const positiveAmount = {
+  validator: (_r, v, cb) => {
+    if (v === null || v === undefined || v === '') return cb(new Error('请输入金额'))
+    const n = Number(v)
+    if (n <= 0) return cb(new Error('金额必须大于0'))
+    if (n > 99999999.99) return cb(new Error('金额不能超过99999999.99'))
+    if (!/^\d+(\.\d{1,2})?$/.test(String(v))) return cb(new Error('金额最多2位小数'))
+    cb()
+  },
+  trigger: 'change'
+}
 const rechargeRules = {
   customerId: [{ required: true, message: '请选择会员', trigger: 'change' }],
-  amount: [{ required: true, message: '请输入充值金额', trigger: 'change' }]
+  amount: [{ required: true, message: '请输入充值金额', trigger: 'change' }, positiveAmount]
 }
 const consumeRules = {
   customerId: [{ required: true, message: '请选择会员', trigger: 'change' }],
   employeeId: [{ required: true, message: '请选择员工', trigger: 'change' }],
   serviceTypeId: [{ required: true, message: '请选择服务', trigger: 'change' }],
-  amount: [{ required: true, message: '请输入消费金额', trigger: 'change' }],
+  amount: [{ required: true, message: '请输入消费金额', trigger: 'change' }, positiveAmount],
   verifyCode: [
     { required: true, message: '请输入校验码', trigger: 'blur' },
     { pattern: /^\d{4}$/, message: '校验码须为4位数字', trigger: 'blur' }

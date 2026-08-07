@@ -128,8 +128,22 @@ const size = 10
 const formRef = ref()
 const form = reactive({ id: '', name: '', price: 0 })
 const rules = {
-  name: [{ required: true, message: '请输入服务名称', trigger: 'blur' }],
-  price: [{ required: true, message: '请输入价格', trigger: 'change' }]
+  name: [
+    { required: true, message: '请输入服务名称', trigger: 'blur' },
+    { max: 32, message: '服务名称最多32个字', trigger: 'blur' }
+  ],
+  price: [
+    { required: true, message: '请输入价格', trigger: 'change' },
+    {
+      validator: (_r, v, cb) => {
+        if (v === null || v === undefined || v === '') return cb(new Error('请输入价格'))
+        if (Number(v) < 0) return cb(new Error('价格不能为负'))
+        if (Number(v) > 99999999.99) return cb(new Error('价格过大'))
+        cb()
+      },
+      trigger: 'change'
+    }
+  ]
 }
 
 const pagedServices = computed(() => slicePage(services.value, page.value, size))

@@ -4,6 +4,7 @@ import com.ddmo.app.dto.ApiResponse;
 import com.ddmo.app.dto.CustomerRequest;
 import com.ddmo.app.model.Customer;
 import com.ddmo.app.service.BarbershopService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,12 +35,12 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ApiResponse<Customer> create(@RequestBody CustomerRequest request) {
+    public ApiResponse<Customer> create(@Valid @RequestBody CustomerRequest request) {
         return ApiResponse.ok("创建成功", barbershopService.createCustomer(request));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Customer> update(@PathVariable String id, @RequestBody CustomerRequest request) {
+    public ApiResponse<Customer> update(@PathVariable String id, @Valid @RequestBody CustomerRequest request) {
         return ApiResponse.ok("更新成功", barbershopService.updateCustomer(id, request));
     }
 

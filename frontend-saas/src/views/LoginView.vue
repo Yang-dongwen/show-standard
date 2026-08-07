@@ -48,8 +48,8 @@
             <p>使用平台账号进入 SaaS 控制台</p>
           </div>
 
-          <el-form :model="form" size="large" @submit.prevent="onSubmit">
-            <el-form-item>
+          <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent="onSubmit">
+            <el-form-item prop="username">
               <el-input
                 v-model="form.username"
                 placeholder="运营账号"
@@ -57,7 +57,7 @@
                 :prefix-icon="User"
               />
             </el-form-item>
-            <el-form-item>
+            <el-form-item prop="password">
               <el-input
                 v-model="form.password"
                 type="password"
@@ -106,11 +106,17 @@ import { saasLogin } from '@/api/http.js'
 
 const router = useRouter()
 const loading = ref(false)
+const formRef = ref()
 const form = reactive({ username: 'platform', password: '' })
+const rules = {
+  username: [{ required: true, message: '请输入运营账号', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
 
 async function onSubmit() {
-  if (!form.username || !form.password) {
-    ElMessage.warning('请输入账号密码')
+  try {
+    await formRef.value?.validate()
+  } catch {
     return
   }
   loading.value = true

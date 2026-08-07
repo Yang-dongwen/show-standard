@@ -185,7 +185,22 @@ public class BackupService {
         }
     }
 
+    /**
+     * 从当前 JDBC URL 解析 SQLite 文件路径；无法解析时回退 ~/.show/show.db。
+     */
     private Path dbPath() {
+        String url = dbDialect.jdbcUrl();
+        if (url != null) {
+            String u = url.trim();
+            String prefix = "jdbc:sqlite:";
+            if (u.regionMatches(true, 0, prefix, 0, prefix.length())) {
+                String filePart = u.substring(prefix.length()).trim();
+                // jdbc:sqlite::memory: 等非文件
+                if (!filePart.isEmpty() && !filePart.startsWith(":") && !filePart.equalsIgnoreCase("memory")) {
+                    return Path.of(filePart);
+                }
+            }
+        }
         return Path.of(System.getProperty("user.home"), ".show", "show.db");
     }
 

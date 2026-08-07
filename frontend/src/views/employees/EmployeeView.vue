@@ -94,7 +94,10 @@ const formRef = ref()
 const pager = reactive({ page: 1, size: 10, total: 0 })
 const form = reactive({ id: '', name: '' })
 const rules = {
-  name: [{ required: true, message: '请输入员工姓名', trigger: 'blur' }]
+  name: [
+    { required: true, message: '请输入员工姓名', trigger: 'blur' },
+    { max: 32, message: '员工姓名最多32个字', trigger: 'blur' }
+  ]
 }
 
 const registerRefresh = inject('registerRefresh', null)

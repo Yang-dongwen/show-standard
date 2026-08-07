@@ -28,26 +28,28 @@
 
         <el-form
           v-if="!result"
+          ref="formRef"
           :model="form"
+          :rules="rules"
           label-position="top"
           size="large"
           @submit.prevent="onSubmit"
         >
-          <el-form-item label="邀请码" required>
+          <el-form-item label="邀请码" prop="inviteCode">
             <el-input v-model="form.inviteCode" placeholder="运营发放的邀请码" />
           </el-form-item>
-          <el-form-item label="门店名称">
-            <el-input v-model="form.shopName" placeholder="可选，默认用昵称生成" />
+          <el-form-item label="门店名称" prop="shopName">
+            <el-input v-model="form.shopName" maxlength="64" show-word-limit placeholder="可选，默认用昵称生成" />
           </el-form-item>
           <div class="row2">
-            <el-form-item label="店长用户名" required>
+            <el-form-item label="店长用户名" prop="username">
               <el-input v-model="form.username" autocomplete="username" />
             </el-form-item>
-            <el-form-item label="昵称" required>
+            <el-form-item label="昵称" prop="nickname">
               <el-input v-model="form.nickname" maxlength="6" show-word-limit />
             </el-form-item>
           </div>
-          <el-form-item label="登录密码" required>
+          <el-form-item label="登录密码" prop="password">
             <el-input
               v-model="form.password"
               type="password"
@@ -87,6 +89,7 @@ import { registerShop } from '@/api/http.js'
 
 const loading = ref(false)
 const result = ref(null)
+const formRef = ref()
 const form = reactive({
   inviteCode: '',
   shopName: '',
@@ -94,10 +97,27 @@ const form = reactive({
   password: '',
   nickname: ''
 })
+const rules = {
+  inviteCode: [{ required: true, message: '请输入邀请码', trigger: 'blur' }],
+  shopName: [{ max: 64, message: '门店名称最多64字', trigger: 'blur' }],
+  username: [
+    { required: true, message: '请输入店长用户名', trigger: 'blur' },
+    { max: 32, message: '用户名过长', trigger: 'blur' }
+  ],
+  nickname: [
+    { required: true, message: '请输入昵称', trigger: 'blur' },
+    { max: 6, message: '昵称最多6个字', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码至少6位', trigger: 'blur' }
+  ]
+}
 
 async function onSubmit() {
-  if (!form.inviteCode || !form.username || !form.password || !form.nickname) {
-    ElMessage.warning('请填写必填项')
+  try {
+    await formRef.value?.validate()
+  } catch {
     return
   }
   loading.value = true
@@ -119,6 +139,7 @@ function reset() {
   form.username = ''
   form.password = ''
   form.nickname = ''
+  formRef.value?.clearValidate?.()
 }
 </script>
 

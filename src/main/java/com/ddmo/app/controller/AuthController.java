@@ -10,6 +10,7 @@ import com.ddmo.app.security.LoginRateLimiter;
 import com.ddmo.app.service.AuthService;
 import com.ddmo.app.util.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,11 +33,11 @@ public class AuthController {
 
     @PostMapping("/login")
     public ApiResponse<Map<String, Object>> login(
-        @RequestBody LoginRequest request,
+        @Valid @RequestBody LoginRequest request,
         HttpServletRequest httpRequest
     ) {
         String ip = ClientIp.from(httpRequest);
-        String user = request != null && request.getUsername() != null ? request.getUsername().trim() : "";
+        String user = request.getUsername() != null ? request.getUsername().trim() : "";
         loginRateLimiter.assertAllowed("ip:" + ip);
         loginRateLimiter.assertAllowed("user:" + user);
         try {
@@ -52,7 +53,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ApiResponse<Void> register(@RequestBody RegisterRequest request) {
+    public ApiResponse<Void> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ApiResponse.ok("注册成功", null);
     }
@@ -124,7 +125,7 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public ApiResponse<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request.getOldPassword(), request.getNewPassword());
         return ApiResponse.ok("密码修改成功", null);
     }

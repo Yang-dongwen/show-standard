@@ -95,6 +95,10 @@ Page({
       wx.showToast({ title: '请选择会员并填写金额', icon: 'none' })
       return
     }
+    if (Number(amount) <= 0) {
+      wx.showToast({ title: '金额必须大于0', icon: 'none' })
+      return
+    }
     this.setData({ submitting: true })
     try {
       if (mode === 'recharge') {
@@ -105,6 +109,11 @@ Page({
       } else {
         if (!employeeId || !serviceTypeId || !verifyCode) {
           wx.showToast({ title: '请完善员工/服务/校验码', icon: 'none' })
+          this.setData({ submitting: false })
+          return
+        }
+        if (!/^\d{4}$/.test(String(verifyCode).trim())) {
+          wx.showToast({ title: '校验码须为4位数字', icon: 'none' })
           this.setData({ submitting: false })
           return
         }

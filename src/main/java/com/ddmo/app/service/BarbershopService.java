@@ -103,34 +103,35 @@ public class BarbershopService {
 
     @Transactional
     public Customer createCustomer(CustomerRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("请求不能为空");
+        }
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
         assertCustomerQuota(tenantId);
-        validateText(request.getName(), "会员姓名不能为空");
+        String name = validateText(request.getName(), "会员姓名不能为空", CustomerRequest.NAME_MAX);
         validateText(request.getPhone(), "手机号不能为空");
-        String phone = request.getPhone().trim();
+        String phone = normalizePhone(request.getPhone());
         ensurePhoneUnique(tenantId, phone, null);
         String verifyCode = normalizeVerifyCode(request.getVerifyCode(), phone);
+        String remark = optionalText(request.getRemark(), CustomerRequest.REMARK_MAX, "备注");
 
         long id = idGenerator.nextId();
         jdbcTemplate.update("""
                 INSERT INTO t_customer(id, tenant_id, name, phone, verify_code, remark, status, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """,
-            id, tenantId, request.getName().trim(), phone, verifyCode, defaultText(request.getRemark()));
+            id, tenantId, name, phone, verifyCode, remark);
 
         jdbcTemplate.update("""
                 INSERT INTO t_account(customer_id, tenant_id, balance, updated_at)
                 VALUES (?, ?, 0, CURRENT_TIMESTAMP)
                 """, id, tenantId);
 
-        recordLog("CREATE_CUSTOMER", "customer", String.valueOf(id), "创建会员: " + request.getName().trim());
+        recordLog("CREATE_CUSTOMER", "customer", String.valueOf(id), "创建会员: " + name);
 
-        BigDecimal init = request.getInitialRechargeAmount();
+        BigDecimal init = normalizeAmountNonNegative(request.getInitialRechargeAmount(), "初次充值金额");
         if (init != null) {
-            if (init.compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalArgumentException("初次充值金额不能小于0");
-            }
             if (init.compareTo(BigDecimal.ZERO) > 0) {
                 creditBalance(tenantId, id, init);
                 long rechargeId = idGenerator.nextId();
@@ -140,7 +141,7 @@ public class BarbershopService {
                         """,
                     rechargeId, tenantId, id, init, "初次充值");
                 recordLog("CREATE_RECHARGE", "recharge", String.valueOf(rechargeId),
-                    "会员 " + request.getName().trim() + " 初次充值 " + init);
+                    "会员 " + name + " 初次充值 " + init);
             }
         }
         return forApi(getCustomerById(tenantId, String.valueOf(id)));
@@ -148,24 +149,28 @@ public class BarbershopService {
 
     @Transactional
     public Customer updateCustomer(String id, CustomerRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("请求不能为空");
+        }
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
         Customer old = getCustomerById(tenantId, id);
-        validateText(request.getName(), "会员姓名不能为空");
+        String name = validateText(request.getName(), "会员姓名不能为空", CustomerRequest.NAME_MAX);
         validateText(request.getPhone(), "手机号不能为空");
-        String phone = request.getPhone().trim();
+        String phone = normalizePhone(request.getPhone());
         ensurePhoneUnique(tenantId, phone, id);
         String verifyCode = request.getVerifyCode() == null || request.getVerifyCode().isBlank()
             ? old.getVerifyCode()
             : normalizeVerifyCode(request.getVerifyCode(), phone);
+        String remark = optionalText(request.getRemark(), CustomerRequest.REMARK_MAX, "备注");
 
         jdbcTemplate.update("""
                 UPDATE t_customer
                 SET name = ?, phone = ?, verify_code = ?, remark = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE tenant_id = ? AND id = ?
                 """,
-            request.getName().trim(), phone, verifyCode, defaultText(request.getRemark()), tenantId, parseId(id));
-        recordLog("UPDATE_CUSTOMER", "customer", id, "更新会员: " + request.getName().trim());
+            name, phone, verifyCode, remark, tenantId, parseId(id));
+        recordLog("UPDATE_CUSTOMER", "customer", id, "更新会员: " + name);
         return forApi(getCustomerById(tenantId, id));
     }
 
@@ -271,13 +276,13 @@ public class BarbershopService {
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
         assertEmployeeQuota(tenantId);
-        validateText(request.getName(), "员工姓名不能为空");
+        String name = validateText(request.getName(), "员工姓名不能为空", EmployeeRequest.NAME_MAX);
         long id = idGenerator.nextId();
         jdbcTemplate.update("""
                 INSERT INTO t_employee(id, tenant_id, name, status, created_at, updated_at)
                 VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """, id, tenantId, request.getName().trim());
-        recordLog("CREATE_EMPLOYEE", "employee", String.valueOf(id), "创建员工: " + request.getName().trim());
+                """, id, tenantId, name);
+        recordLog("CREATE_EMPLOYEE", "employee", String.valueOf(id), "创建员工: " + name);
         return getEmployeeById(tenantId, String.valueOf(id));
     }
 
@@ -286,10 +291,10 @@ public class BarbershopService {
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
         getEmployeeById(tenantId, id);
-        validateText(request.getName(), "员工姓名不能为空");
+        String name = validateText(request.getName(), "员工姓名不能为空", EmployeeRequest.NAME_MAX);
         jdbcTemplate.update("UPDATE t_employee SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ? AND id = ?",
-            request.getName().trim(), tenantId, parseId(id));
-        recordLog("UPDATE_EMPLOYEE", "employee", id, "更新员工: " + request.getName().trim());
+            name, tenantId, parseId(id));
+        recordLog("UPDATE_EMPLOYEE", "employee", id, "更新员工: " + name);
         return getEmployeeById(tenantId, id);
     }
 
@@ -347,14 +352,14 @@ public class BarbershopService {
     public ServiceType createServiceType(ServiceTypeRequest request) {
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
-        validateText(request.getName(), "服务名称不能为空");
-        validateAmount(request.getPrice(), "价格必须大于等于0");
+        String name = validateText(request.getName(), "服务名称不能为空", ServiceTypeRequest.NAME_MAX);
+        BigDecimal price = normalizeAmountNonNegative(request.getPrice(), "价格");
         long id = idGenerator.nextId();
         jdbcTemplate.update("""
                 INSERT INTO t_service_type(id, tenant_id, name, price, status, created_at, updated_at)
                 VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """, id, tenantId, request.getName().trim(), request.getPrice());
-        recordLog("CREATE_SERVICE", "service", String.valueOf(id), "新增服务: " + request.getName().trim());
+                """, id, tenantId, name, price);
+        recordLog("CREATE_SERVICE", "service", String.valueOf(id), "新增服务: " + name);
         return getServiceById(tenantId, String.valueOf(id));
     }
 
@@ -363,13 +368,13 @@ public class BarbershopService {
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
         getServiceById(tenantId, id);
-        validateText(request.getName(), "服务名称不能为空");
-        validateAmount(request.getPrice(), "价格必须大于等于0");
+        String name = validateText(request.getName(), "服务名称不能为空", ServiceTypeRequest.NAME_MAX);
+        BigDecimal price = normalizeAmountNonNegative(request.getPrice(), "价格");
         jdbcTemplate.update("""
                 UPDATE t_service_type SET name = ?, price = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE tenant_id = ? AND id = ?
-                """, request.getName().trim(), request.getPrice(), tenantId, parseId(id));
-        recordLog("UPDATE_SERVICE", "service", id, "更新服务: " + request.getName().trim());
+                """, name, price, tenantId, parseId(id));
+        recordLog("UPDATE_SERVICE", "service", id, "更新服务: " + name);
         return getServiceById(tenantId, id);
     }
 
@@ -388,26 +393,30 @@ public class BarbershopService {
 
     @Transactional
     public RechargeRecord createRecharge(RechargeRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("请求不能为空");
+        }
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
         ReentrantLock lock = lockFor(tenantId);
         lock.lock();
         try {
             validateText(request.getCustomerId(), "会员不能为空");
-            validateAmountPositive(request.getAmount(), "充值金额必须大于0");
+            BigDecimal amount = normalizeAmountPositive(request.getAmount(), "充值金额");
+            String remark = optionalText(request.getRemark(), RechargeRequest.REMARK_MAX, "备注");
             Customer customer = getCustomerById(tenantId, request.getCustomerId());
             ensureActive(customer.getStatus(), "会员已停用");
             long customerId = parseId(request.getCustomerId());
             ensureAccount(tenantId, customerId);
-            creditBalance(tenantId, customerId, request.getAmount());
+            creditBalance(tenantId, customerId, amount);
 
             long id = idGenerator.nextId();
             jdbcTemplate.update("""
                     INSERT INTO t_recharge_record(id, tenant_id, customer_id, amount, remark, status, created_at)
                     VALUES (?, ?, ?, ?, ?, 'normal', CURRENT_TIMESTAMP)
-                    """, id, tenantId, customerId, request.getAmount(), defaultText(request.getRemark()));
+                    """, id, tenantId, customerId, amount, remark);
             recordLog("CREATE_RECHARGE", "recharge", String.valueOf(id),
-                "会员 " + customer.getName() + " 充值 " + request.getAmount());
+                "会员 " + customer.getName() + " 充值 " + amount);
             return getRechargeById(tenantId, String.valueOf(id));
         } finally {
             lock.unlock();
@@ -416,12 +425,16 @@ public class BarbershopService {
 
     @Transactional
     public ConsumeRecord createConsume(ConsumeRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("请求不能为空");
+        }
         long tenantId = tenantId();
         tenantAccessService.assertCanWrite(tenantId);
         ReentrantLock lock = lockFor(tenantId);
         lock.lock();
         try {
-            validateAmountPositive(request.getAmount(), "消费金额必须大于0");
+            BigDecimal amount = normalizeAmountPositive(request.getAmount(), "消费金额");
+            String remark = optionalText(request.getRemark(), ConsumeRequest.REMARK_MAX, "备注");
             Customer customer = getCustomerById(tenantId, request.getCustomerId());
             Employee employee = getEmployeeById(tenantId, request.getEmployeeId());
             ServiceType serviceType = getServiceById(tenantId, request.getServiceTypeId());
@@ -446,7 +459,7 @@ public class BarbershopService {
                     SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP
                     WHERE tenant_id = ? AND customer_id = ? AND balance >= ?
                     """,
-                request.getAmount(), tenantId, customerId, request.getAmount());
+                amount, tenantId, customerId, amount);
             if (updated == 0) {
                 throw new IllegalArgumentException("余额不足，扣款失败");
             }
@@ -457,9 +470,9 @@ public class BarbershopService {
                     VALUES (?, ?, ?, ?, ?, ?, ?, 'normal', CURRENT_TIMESTAMP)
                     """,
                 id, tenantId, customerId, parseId(request.getEmployeeId()), parseId(request.getServiceTypeId()),
-                request.getAmount(), defaultText(request.getRemark()));
+                amount, remark);
             recordLog("CREATE_CONSUME", "consume", String.valueOf(id),
-                "会员 " + customer.getName() + " 消费 " + request.getAmount() + "，员工 " + employee.getName());
+                "会员 " + customer.getName() + " 消费 " + amount + "，员工 " + employee.getName());
             return getConsumeById(tenantId, String.valueOf(id));
         } finally {
             lock.unlock();
@@ -569,6 +582,9 @@ public class BarbershopService {
         int safeSize = safeSize(size);
         int safePage = Math.max(page, 1);
 
+        String consumeSearch = dbDialect.concat(
+            "COALESCE(st.name,'')", "'/'", "COALESCE(e.name,'')", "'/'", "COALESCE(cr.remark,'')"
+        );
         Long total = jdbcTemplate.queryForObject("""
                 SELECT COUNT(1) FROM (
                     SELECT r.id
@@ -585,10 +601,10 @@ public class BarbershopService {
                     LEFT JOIN t_employee e ON e.tenant_id = cr.tenant_id AND e.id = cr.employee_id
                     WHERE cr.tenant_id = ?
                       AND (? = '' OR LOWER(COALESCE(c.name,'')) LIKE LOWER(?)
-                          OR LOWER(COALESCE(st.name,'') || '/' || COALESCE(e.name,'') || '/' || COALESCE(cr.remark,'')) LIKE LOWER(?)
+                          OR LOWER(%s) LIKE LOWER(?)
                           OR LOWER(COALESCE(cr.status,'normal')) LIKE LOWER(?) OR 'consume' LIKE LOWER(?))
                 ) t
-                """,
+                """.formatted(consumeSearch),
             Long.class,
             tenantId, k, "%" + k + "%", "%" + k + "%", "%" + k + "%", "%" + k + "%",
             tenantId, k, "%" + k + "%", "%" + k + "%", "%" + k + "%", "%" + k + "%"
@@ -619,31 +635,41 @@ public class BarbershopService {
             dateFilterC = " AND DATE(cr.created_at) BETWEEN DATE(?) AND DATE(?) ";
         }
         String limitSql = (limit != null && offset != null) ? " LIMIT ? OFFSET ? " : "";
+        String idR = dbDialect.castAsString("r.id");
+        String idCr = dbDialect.castAsString("cr.id");
+        String detailRecharge = "CASE WHEN COALESCE(r.status,'normal') = 'reversal' THEN "
+            + dbDialect.concat("'[冲正]'", "COALESCE(r.remark,'')")
+            + " WHEN COALESCE(r.status,'normal') = 'reversed' THEN "
+            + dbDialect.concat("'[已冲正]'", "COALESCE(r.remark,'')")
+            + " ELSE COALESCE(r.remark,'') END";
+        String detailConsume = dbDialect.concat(
+            "(CASE WHEN COALESCE(cr.status,'normal') = 'reversal' THEN '[冲正]'"
+                + " WHEN COALESCE(cr.status,'normal') = 'reversed' THEN '[已冲正]'"
+                + " ELSE '' END)",
+            "COALESCE(st.name,'未知服务')",
+            "'/'",
+            "COALESCE(e.name,'未知员工')",
+            "CASE WHEN cr.remark = '' OR cr.remark IS NULL THEN '' ELSE " + dbDialect.concat("'/'", "cr.remark") + " END"
+        );
 
         String sql = """
             SELECT x.id, x.type, x.customer_id, c.name AS customer_name, x.amount, x.detail, x.status, x.created_at
             FROM (
-                SELECT CAST(r.id AS TEXT) AS id, 'recharge' AS type, r.customer_id, r.amount,
-                       CASE WHEN COALESCE(r.status,'normal') = 'reversal' THEN '[冲正]' || r.remark
-                            WHEN COALESCE(r.status,'normal') = 'reversed' THEN '[已冲正]' || r.remark
-                            ELSE r.remark END AS detail,
+                SELECT %s AS id, 'recharge' AS type, r.customer_id, r.amount,
+                       %s AS detail,
                        COALESCE(r.status,'normal') AS status, r.created_at
                 FROM t_recharge_record r
                 WHERE r.tenant_id = ?
-                """ + dateFilterR + """
+                """.formatted(idR, detailRecharge) + dateFilterR + """
                 UNION ALL
-                SELECT CAST(cr.id AS TEXT) AS id, 'consume' AS type, cr.customer_id, cr.amount,
-                       (CASE WHEN COALESCE(cr.status,'normal') = 'reversal' THEN '[冲正]'
-                             WHEN COALESCE(cr.status,'normal') = 'reversed' THEN '[已冲正]'
-                             ELSE '' END)
-                       || COALESCE(st.name,'未知服务') || '/' || COALESCE(e.name,'未知员工')
-                       || CASE WHEN cr.remark = '' THEN '' ELSE '/' || cr.remark END AS detail,
+                SELECT %s AS id, 'consume' AS type, cr.customer_id, cr.amount,
+                       %s AS detail,
                        COALESCE(cr.status,'normal') AS status, cr.created_at
                 FROM t_consume_record cr
                 LEFT JOIN t_service_type st ON st.tenant_id = cr.tenant_id AND st.id = cr.service_type_id
                 LEFT JOIN t_employee e ON e.tenant_id = cr.tenant_id AND e.id = cr.employee_id
                 WHERE cr.tenant_id = ?
-                """ + dateFilterC + """
+                """.formatted(idCr, detailConsume) + dateFilterC + """
             ) x
             LEFT JOIN t_customer c ON c.tenant_id = ? AND c.id = x.customer_id
             WHERE (? = '' OR LOWER(COALESCE(c.name,'')) LIKE LOWER(?) OR LOWER(COALESCE(x.detail,'')) LIKE LOWER(?)
@@ -987,6 +1013,9 @@ public class BarbershopService {
         return map;
     }
 
+    /** 允许写入的租户设置键（白名单） */
+    private static final java.util.Set<String> ALLOWED_SETTING_KEYS = java.util.Set.of("dailyTarget");
+
     @Transactional
     public Map<String, String> updateSettings(Map<String, String> settings) {
         if (settings == null || settings.isEmpty()) {
@@ -995,8 +1024,8 @@ public class BarbershopService {
         long tenantId = tenantId();
         for (Map.Entry<String, String> e : settings.entrySet()) {
             String key = e.getKey() == null ? "" : e.getKey().trim();
-            if (key.isEmpty() || key.length() > 64) {
-                throw new IllegalArgumentException("非法设置项: " + key);
+            if (key.isEmpty() || !ALLOWED_SETTING_KEYS.contains(key)) {
+                throw new IllegalArgumentException("非法设置项: " + key + "（允许: " + ALLOWED_SETTING_KEYS + "）");
             }
             String value = e.getValue() == null ? "" : e.getValue().trim();
             if (value.length() > 500) {
@@ -1007,6 +1036,9 @@ public class BarbershopService {
                     double v = Double.parseDouble(value);
                     if (v < 0) {
                         throw new IllegalArgumentException("今日目标不能为负");
+                    }
+                    if (v > 99999999.99) {
+                        throw new IllegalArgumentException("今日目标过大");
                     }
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException("今日目标必须是数字");
@@ -1320,22 +1352,62 @@ public class BarbershopService {
         return status == null || status.isBlank() ? "normal" : status;
     }
 
+    private static final BigDecimal AMOUNT_MAX = new BigDecimal("99999999.99");
+
     private void validateText(String value, String message) {
+        validateText(value, message, Integer.MAX_VALUE);
+    }
+
+    private String validateText(String value, String message, int maxLen) {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException(message);
         }
-    }
-
-    private void validateAmount(BigDecimal value, String message) {
-        if (value == null || value.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException(message);
+        String t = value.trim();
+        if (t.length() > maxLen) {
+            throw new IllegalArgumentException(message.replace("不能为空", "过长") + "（最多" + maxLen + "字）");
         }
+        return t;
     }
 
-    private void validateAmountPositive(BigDecimal value, String message) {
+    private String optionalText(String value, int maxLen, String label) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String t = value.trim();
+        if (t.length() > maxLen) {
+            throw new IllegalArgumentException(label + "最多" + maxLen + "个字");
+        }
+        return t;
+    }
+
+    private BigDecimal normalizeAmountNonNegative(BigDecimal value, String label) {
+        if (value == null) {
+            return null;
+        }
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(label + "不能小于0");
+        }
+        return normalizeMoney(value, label);
+    }
+
+    private BigDecimal normalizeAmountPositive(BigDecimal value, String label) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(message);
+            throw new IllegalArgumentException(label + "必须大于0");
         }
+        return normalizeMoney(value, label);
+    }
+
+    private BigDecimal normalizeMoney(BigDecimal value, String label) {
+        // stripTrailingZeros 后 scale 可能为负（如 100），仅拒绝超过 2 位小数
+        int scale = value.stripTrailingZeros().scale();
+        if (scale > 2) {
+            throw new IllegalArgumentException(label + "最多保留2位小数");
+        }
+        BigDecimal normalized = value.setScale(2, RoundingMode.HALF_UP);
+        if (normalized.compareTo(AMOUNT_MAX) > 0) {
+            throw new IllegalArgumentException(label + "不能超过" + AMOUNT_MAX.toPlainString());
+        }
+        return normalized;
     }
 
     private void ensureActive(String status, String message) {
@@ -1350,6 +1422,15 @@ public class BarbershopService {
             throw new IllegalArgumentException("校验码必须是4位数字");
         }
         return v;
+    }
+
+    /** 大陆 11 位手机号；兼容历史短号数据时仅在创建/更新时强制。 */
+    private String normalizePhone(String phone) {
+        String p = phone == null ? "" : phone.trim();
+        if (!p.matches("1\\d{10}")) {
+            throw new IllegalArgumentException("手机号须为11位且以1开头");
+        }
+        return p;
     }
 
     private String last4(String phone) {

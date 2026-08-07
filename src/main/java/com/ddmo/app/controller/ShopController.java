@@ -3,6 +3,7 @@ package com.ddmo.app.controller;
 import com.ddmo.app.dto.ApiResponse;
 import com.ddmo.app.dto.ShopUpdateRequest;
 import com.ddmo.app.service.BarbershopService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,7 +28,7 @@ public class ShopController {
     }
 
     @PutMapping
-    public ApiResponse<Map<String, Object>> update(@RequestBody ShopUpdateRequest request) {
+    public ApiResponse<Map<String, Object>> update(@Valid @RequestBody ShopUpdateRequest request) {
         return ApiResponse.ok("门店资料已保存", barbershopService.updateShopProfile(request.getShopName()));
     }
 }

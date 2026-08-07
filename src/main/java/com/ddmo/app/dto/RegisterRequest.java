@@ -1,10 +1,24 @@
 package com.ddmo.app.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class RegisterRequest {
+
+    @NotBlank(message = "用户名不能为空")
+    @Size(max = 32, message = "用户名过长")
     private String username;
+
+    @NotBlank(message = "密码不能为空")
+    @Size(min = 6, max = 64, message = "密码长度须为6-64位")
     private String password;
+
+    @NotBlank(message = "昵称不能为空")
+    @Size(max = 6, message = "昵称最多6个字")
     private String nickname;
+
     /** 当 app.register.mode=invite 时必填（C 端静态码） */
+    @Size(max = 64, message = "邀请码过长")
     private String inviteCode;
 
     public String getUsername() {
@@ -39,4 +53,3 @@ public class RegisterRequest {
         this.inviteCode = inviteCode;
     }
 }
-

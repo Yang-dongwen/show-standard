@@ -4,6 +4,7 @@ import com.ddmo.app.dto.ApiResponse;
 import com.ddmo.app.dto.EmployeeRequest;
 import com.ddmo.app.model.Employee;
 import com.ddmo.app.service.BarbershopService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,12 +43,12 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public ApiResponse<Employee> create(@RequestBody EmployeeRequest request) {
+    public ApiResponse<Employee> create(@Valid @RequestBody EmployeeRequest request) {
         return ApiResponse.ok("创建成功", barbershopService.createEmployee(request));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Employee> update(@PathVariable String id, @RequestBody EmployeeRequest request) {
+    public ApiResponse<Employee> update(@PathVariable String id, @Valid @RequestBody EmployeeRequest request) {
         return ApiResponse.ok("更新成功", barbershopService.updateEmployee(id, request));
     }
 

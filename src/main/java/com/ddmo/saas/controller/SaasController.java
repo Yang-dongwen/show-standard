@@ -21,6 +21,7 @@ import com.ddmo.saas.service.SaasTenantService;
 import com.ddmo.app.security.LoginRateLimiter;
 import com.ddmo.app.util.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -74,11 +75,11 @@ public class SaasController {
 
     @PostMapping("/auth/login")
     public ApiResponse<Map<String, Object>> login(
-        @RequestBody LoginRequest request,
+        @Valid @RequestBody LoginRequest request,
         HttpServletRequest httpRequest
     ) {
         String ip = ClientIp.from(httpRequest);
-        String user = request != null && request.getUsername() != null ? request.getUsername().trim() : "";
+        String user = request.getUsername() != null ? request.getUsername().trim() : "";
         loginRateLimiter.assertAllowed("saas-ip:" + ip);
         loginRateLimiter.assertAllowed("saas-user:" + user);
         try {
@@ -104,7 +105,7 @@ public class SaasController {
     }
 
     @PostMapping("/public/register-shop")
-    public ApiResponse<Map<String, Object>> registerShop(@RequestBody RegisterShopRequest request) {
+    public ApiResponse<Map<String, Object>> registerShop(@Valid @RequestBody RegisterShopRequest request) {
         return ApiResponse.ok("开店成功", tenantService.registerShop(request));
     }
 

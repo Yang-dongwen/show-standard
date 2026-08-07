@@ -46,7 +46,9 @@ public class AuthFilter extends OncePerRequestFilter {
             || "/api/auth/register".equals(path)
             || "/api/auth/register-status".equals(path)
             || "/api/auth/wx-login".equals(path)
-            || "/api/auth/wx-bind".equals(path);
+            || "/api/auth/wx-bind".equals(path)
+            // 产品线说明：安装/登录页可公开读取，不暴露租户数据
+            || path.startsWith("/api/system/product-line");
     }
 
     @Override

@@ -15,8 +15,12 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * 启动最早阶段加载 ~/.show/install.properties，使数据源 / deployment / profile 按安装向导生效。
- * 优先级高于 application.yml 与部分 -D 默认值（addFirst）。
+ * 启动最早阶段按「安装向导」结果切换数据源。
+ * <ul>
+ *   <li>已完成 install：local → SQLite；saas → MySQL</li>
+ *   <li>未完成 + 桌面壳（desktop.mode）：临时 SQLite 仅用于拉起安装向导（不代表已选买断）</li>
+ *   <li>未完成 + 普通开发启动：不覆盖，沿用 application.yml 默认 cloud/MySQL</li>
+ * </ul>
  */
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class InstallConfigEnvironmentPostProcessor implements EnvironmentPostProcessor {
@@ -25,20 +29,29 @@ public class InstallConfigEnvironmentPostProcessor implements EnvironmentPostPro
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        var file = InstallPaths.installFile();
-        if (!Files.isRegularFile(file)) {
-            return;
-        }
-        Properties props = new Properties();
-        try (InputStream in = Files.newInputStream(file)) {
-            props.load(in);
-        } catch (IOException e) {
-            throw new IllegalStateException("读取安装配置失败: " + file, e);
-        }
-        if (!"true".equalsIgnoreCase(props.getProperty("install.completed", ""))) {
+        Properties props = loadInstallProps();
+        boolean completed = props != null
+            && "true".equalsIgnoreCase(props.getProperty("install.completed", ""));
+
+        if (completed) {
+            applyCompletedInstall(environment, props);
             return;
         }
 
+        // 桌面安装包首次启动：尚无选型时用 SQLite 起进程，才能打开安装向导
+        if (isDesktopShell()) {
+            Map<String, Object> map = new HashMap<>();
+            applySqlite(map);
+            map.put("install.bootstrap", "true");
+            map.put("install.completed", "false");
+            // 向导未完成前不当成买断正式版（SaaS 门禁仍按 deployment=desktop 关运营台，避免半安装误用）
+            map.put("app.deployment", "desktop");
+            environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE_NAME, map));
+        }
+        // 日常 mvn 启动：无 install 或未完成时不覆盖，默认 cloud + MySQL
+    }
+
+    private void applyCompletedInstall(ConfigurableEnvironment environment, Properties props) {
         Map<String, Object> map = new HashMap<>();
         String edition = props.getProperty("install.edition", "local").trim().toLowerCase();
         if ("saas".equals(edition) || "cloud".equals(edition)) {
@@ -49,30 +62,53 @@ public class InstallConfigEnvironmentPostProcessor implements EnvironmentPostPro
             putIfPresent(map, "spring.datasource.username", props.getProperty("spring.datasource.username"));
             putIfPresent(map, "spring.datasource.password", props.getProperty("spring.datasource.password"));
             map.putIfAbsent("spring.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
-            // 避免 cloud yml 被盖掉后仍用 sqlite pool 名
             map.put("spring.datasource.hikari.maximum-pool-size", "10");
             map.put("spring.datasource.hikari.minimum-idle", "2");
             map.put("spring.datasource.hikari.pool-name", "show-mysql");
             map.put("app.wx.miniapp.enabled", props.getProperty("app.wx.miniapp.enabled", "true"));
+            map.put("install.edition", "saas");
         } else {
+            // 仅安装向导选择「本地买断」后才固定 SQLite
             map.put("app.deployment", "desktop");
-            // 固定本地 SQLite，并避免误留 cloud profile
-            map.put("spring.profiles.active", "");
-            map.put("spring.datasource.url", "jdbc:sqlite:" + InstallPaths.sqliteDb().toAbsolutePath());
-            map.put("spring.datasource.driver-class-name", "org.sqlite.JDBC");
-            map.put("spring.datasource.username", "show");
-            map.put("spring.datasource.password", "show");
-            map.put("spring.flyway.locations", "classpath:db/migration/sqlite");
-            map.put("spring.datasource.hikari.maximum-pool-size", "1");
-            map.put("spring.datasource.hikari.minimum-idle", "1");
-            map.put("spring.datasource.hikari.pool-name", "show-sqlite");
-            map.put("spring.datasource.hikari.max-lifetime", "0");
+            map.put("spring.profiles.active", "desktop");
+            applySqlite(map);
             map.put("app.wx.miniapp.enabled", "false");
+            map.put("install.edition", "local");
         }
         map.put("install.completed", "true");
-        map.put("install.edition", "saas".equals(edition) || "cloud".equals(edition) ? "saas" : "local");
-
+        map.put("install.bootstrap", "false");
         environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE_NAME, map));
+    }
+
+    private static void applySqlite(Map<String, Object> map) {
+        map.put("spring.profiles.active", "desktop");
+        map.put("spring.datasource.url", "jdbc:sqlite:" + InstallPaths.sqliteDb().toAbsolutePath());
+        map.put("spring.datasource.driver-class-name", "org.sqlite.JDBC");
+        map.put("spring.datasource.username", "show");
+        map.put("spring.datasource.password", "show");
+        map.put("spring.flyway.locations", "classpath:db/migration/sqlite");
+        map.put("spring.datasource.hikari.maximum-pool-size", "1");
+        map.put("spring.datasource.hikari.minimum-idle", "1");
+        map.put("spring.datasource.hikari.pool-name", "show-sqlite");
+        map.put("spring.datasource.hikari.max-lifetime", "0");
+    }
+
+    private static boolean isDesktopShell() {
+        return Boolean.parseBoolean(System.getProperty("desktop.mode", "false"));
+    }
+
+    private static Properties loadInstallProps() {
+        var file = InstallPaths.installFile();
+        if (!Files.isRegularFile(file)) {
+            return null;
+        }
+        Properties props = new Properties();
+        try (InputStream in = Files.newInputStream(file)) {
+            props.load(in);
+            return props;
+        } catch (IOException e) {
+            throw new IllegalStateException("读取安装配置失败: " + file, e);
+        }
     }
 
     private static void putIfPresent(Map<String, Object> map, String key, String value) {

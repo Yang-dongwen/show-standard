@@ -1,14 +1,14 @@
-# ========== SKU：SaaS 云版 ==========
-# 启用：spring.profiles.active=cloud
-# 强制：云端 MySQL（开发阶段可用本机/容器 MySQL 代替远端云库）
-# 包含：SaaS 运营台、邀请开店、商家小程序；非买断单机包
+# ========== SKU：SaaS / 日常开发默认 ==========
+# 默认已 spring.profiles.active=cloud（见 application.yml）
+# 数据源：本机 MySQL（改账号密码只改这里即可）
+# 包含：SaaS 运营台、邀请开店、商家小程序
 
 spring:
   datasource:
-    # 本地 MySQL 默认：库 show / 用户 show / 密码 show
-    # 请先建库：CREATE DATABASE show DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-    url: jdbc:mysql://127.0.0.1:3306/show?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: admin
+    # 改成你的本机 MySQL
+    # createDatabaseIfNotExist：本地首次启动自动建库 show（避免 Unknown database）
+    url: jdbc:mysql://127.0.0.1:3306/show?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
@@ -24,9 +24,10 @@ spring:
     locations: classpath:db/migration/mysql
     baseline-on-migrate: true
     baseline-version: 1
+    validate-on-migrate: true
 
 app:
-  deployment: cloud   # SaaS 订阅 · 云 MySQL · 非本地买断
+  deployment: cloud
   security:
     # 公网生产务必 true（并关闭 mock、配置真实微信密钥）
     strict-cloud: false

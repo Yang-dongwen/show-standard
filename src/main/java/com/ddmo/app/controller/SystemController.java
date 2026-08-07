@@ -4,6 +4,8 @@ import com.ddmo.app.config.AppDeploymentProperties;
 import com.ddmo.app.config.DbDialect;
 import com.ddmo.app.dto.ApiResponse;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,23 +22,26 @@ import java.util.Map;
 @RequestMapping("/api/system")
 public class SystemController {
 
-    private final ServletWebServerApplicationContext webServerApplicationContext;
+    private final ApplicationContext applicationContext;
+    private final Environment environment;
     private final AppDeploymentProperties deploymentProperties;
     private final DbDialect dbDialect;
 
     public SystemController(
-        ServletWebServerApplicationContext webServerApplicationContext,
+        ApplicationContext applicationContext,
+        Environment environment,
         AppDeploymentProperties deploymentProperties,
         DbDialect dbDialect
     ) {
-        this.webServerApplicationContext = webServerApplicationContext;
+        this.applicationContext = applicationContext;
+        this.environment = environment;
         this.deploymentProperties = deploymentProperties;
         this.dbDialect = dbDialect;
     }
 
     @GetMapping("/access-info")
     public ApiResponse<Map<String, Object>> accessInfo() {
-        int port = webServerApplicationContext.getWebServer().getPort();
+        int port = resolveServerPort();
         String ip = resolveHostIp();
         Map<String, Object> data = new HashMap<>();
         data.put("ip", ip);
@@ -108,6 +113,19 @@ public class SystemController {
     private boolean miniProgramActuallyEnabled() {
         return deploymentProperties.isCloud()
             && deploymentProperties.getWx().getMiniapp().isEnabled();
+    }
+
+    /** MockMvc 测试环境无真实 WebServer，回退到 server.port 配置。 */
+    private int resolveServerPort() {
+        if (applicationContext instanceof ServletWebServerApplicationContext web) {
+            try {
+                return web.getWebServer().getPort();
+            } catch (Exception ignored) {
+                // fall through
+            }
+        }
+        return environment.getProperty("local.server.port", Integer.class,
+            environment.getProperty("server.port", Integer.class, 8080));
     }
 
     private String resolveHostIp() {

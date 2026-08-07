@@ -1,7 +1,15 @@
 package com.ddmo.app.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class ChangePasswordRequest {
+
+    @NotBlank(message = "旧密码不能为空")
     private String oldPassword;
+
+    @NotBlank(message = "新密码不能为空")
+    @Size(min = 6, max = 64, message = "新密码长度须为6-64位")
     private String newPassword;
 
     public String getOldPassword() {
@@ -20,4 +28,3 @@ public class ChangePasswordRequest {
         this.newPassword = newPassword;
     }
 }
-

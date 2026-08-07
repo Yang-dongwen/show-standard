@@ -47,6 +47,22 @@ Page({
       wx.showToast({ title: '姓名和手机号必填', icon: 'none' })
       return
     }
+    if (String(name).trim().length > 32) {
+      wx.showToast({ title: '会员姓名最多32个字', icon: 'none' })
+      return
+    }
+    if (remark && String(remark).trim().length > 200) {
+      wx.showToast({ title: '备注最多200个字', icon: 'none' })
+      return
+    }
+    if (!/^1\d{10}$/.test(String(phone).trim())) {
+      wx.showToast({ title: '手机号须为11位且以1开头', icon: 'none' })
+      return
+    }
+    if (verifyCode && !/^\d{4}$/.test(String(verifyCode).trim())) {
+      wx.showToast({ title: '校验码须为4位数字', icon: 'none' })
+      return
+    }
     this.setData({ saving: true })
     try {
       const body = {

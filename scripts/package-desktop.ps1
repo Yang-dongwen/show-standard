@@ -19,11 +19,11 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 # -------------------- Config (edit as needed) --------------------
-# SKU：本地买断版（SQLite，无云 MySQL / 无 SaaS / 无小程序）
+# 桌面壳安装包：首次运行走安装向导（买断 SQLite / SaaS MySQL 由用户选择）
 $AppName        = "Show"
 $AppVersion     = "1.0.0"
 $AppVendor      = "DDMO"
-$AppDescription = "Show local buyout edition - SQLite, offline, no mini-program"
+$AppDescription = "Show barbershop system - install wizard chooses local SQLite or SaaS MySQL"
 $MainJar        = "ddmo-1.0.0.jar"
 $MainClass      = "org.springframework.boot.loader.JarLauncher"
 # Package type: msi (recommended) or exe (exe does not need WiX)
@@ -63,7 +63,7 @@ function Get-JdkHome {
 
 Write-Host ""
 Write-Host "============================================"
-Write-Host "  $AppName LOCAL buyout packaging"
+Write-Host "  $AppName desktop shell packaging"
 Write-Host "  version: $AppVersion  type: $PackageType"
 Write-Host "  project: $ProjectRoot"
 Write-Host "  data: SQLite only (no cloud MySQL / no SaaS)"
@@ -242,9 +242,8 @@ $jpackageArgs = @(
     "--main-class", $MainClass,
     "--runtime-image", $RuntimeDir,
     "--dest", $DistDir,
-    # 桌面壳；产品选型由首次「安装向导」写入 ~/.show/install.properties
+    # 仅桌面壳；产品选型（SQLite 买断 / MySQL SaaS）由安装向导决定，不在此写死 SQLite
     "--java-options", "-Ddesktop.mode=true",
-    # Cap heap so a second short-lived handoff process can still start JVM
     "--java-options", "-Xms64m",
     "--java-options", "-Xmx512m",
     "--java-options", "-Dfile.encoding=UTF-8",
@@ -290,9 +289,9 @@ Get-ChildItem -Path $DistDir -Filter "*.$PackageType" -ErrorAction SilentlyConti
         Write-Host "  - $($_.Name)  ($mb MB)"
     }
 Write-Host ""
-Write-Ok "  SKU: LOCAL buyout (SQLite). Not SaaS / no mini-program."
+Write-Ok "  Desktop shell only. First run: install wizard."
+Write-Ok "  Buyout = SQLite; SaaS = MySQL (user chooses in wizard)."
 Write-Ok "  End-user PC: install MSI/EXE only. JDK is NOT required."
-Write-Ok "  SaaS cloud edition: use docker compose (MySQL), not this MSI."
 Write-Ok "  Build PC only: needs JDK 17+ / Maven / (WiX for MSI)."
 Write-Ok "============================================"
 Write-Host ""

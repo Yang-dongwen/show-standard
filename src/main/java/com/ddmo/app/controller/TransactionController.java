@@ -7,6 +7,7 @@ import com.ddmo.app.dto.ReverseRequest;
 import com.ddmo.app.model.ConsumeRecord;
 import com.ddmo.app.model.RechargeRecord;
 import com.ddmo.app.service.BarbershopService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,12 +27,12 @@ public class TransactionController {
     }
 
     @PostMapping("/recharge")
-    public ApiResponse<RechargeRecord> recharge(@RequestBody RechargeRequest request) {
+    public ApiResponse<RechargeRecord> recharge(@Valid @RequestBody RechargeRequest request) {
         return ApiResponse.ok("充值成功", barbershopService.createRecharge(request));
     }
 
     @PostMapping("/consume")
-    public ApiResponse<ConsumeRecord> consume(@RequestBody ConsumeRequest request) {
+    public ApiResponse<ConsumeRecord> consume(@Valid @RequestBody ConsumeRequest request) {
         return ApiResponse.ok("消费登记成功", barbershopService.createConsume(request));
     }
 
