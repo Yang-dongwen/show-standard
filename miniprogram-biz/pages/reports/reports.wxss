@@ -1,0 +1,9 @@
+.kpi {
+  margin-top: 12rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.sec {
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}

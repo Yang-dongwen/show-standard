@@ -11,6 +11,8 @@ import com.ddmo.app.model.Customer;
 import com.ddmo.app.model.Employee;
 import com.ddmo.app.model.RechargeRecord;
 import com.ddmo.app.model.ServiceType;
+import com.ddmo.app.config.DbDialect;
+import com.ddmo.app.security.StaffRole;
 import com.ddmo.app.security.TenantContext;
 import com.ddmo.app.util.SnowflakeIdGenerator;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,12 +34,24 @@ public class BarbershopService {
 
     private final JdbcTemplate jdbcTemplate;
     private final SnowflakeIdGenerator idGenerator;
+    private final TenantAccessService tenantAccessService;
+    private final RolePermissionService rolePermissionService;
+    private final DbDialect dbDialect;
     /** 租户级写锁，防止余额并发超扣（配合账户表原子 UPDATE） */
     private final ConcurrentHashMap<Long, ReentrantLock> tenantLocks = new ConcurrentHashMap<>();
 
-    public BarbershopService(JdbcTemplate jdbcTemplate, SnowflakeIdGenerator idGenerator) {
+    public BarbershopService(
+        JdbcTemplate jdbcTemplate,
+        SnowflakeIdGenerator idGenerator,
+        TenantAccessService tenantAccessService,
+        RolePermissionService rolePermissionService,
+        DbDialect dbDialect
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.idGenerator = idGenerator;
+        this.tenantAccessService = tenantAccessService;
+        this.rolePermissionService = rolePermissionService;
+        this.dbDialect = dbDialect;
     }
 
     public List<Customer> listCustomers(String keyword) {
@@ -90,6 +104,8 @@ public class BarbershopService {
     @Transactional
     public Customer createCustomer(CustomerRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
+        assertCustomerQuota(tenantId);
         validateText(request.getName(), "会员姓名不能为空");
         validateText(request.getPhone(), "手机号不能为空");
         String phone = request.getPhone().trim();
@@ -127,12 +143,13 @@ public class BarbershopService {
                     "会员 " + request.getName().trim() + " 初次充值 " + init);
             }
         }
-        return getCustomerById(tenantId, String.valueOf(id));
+        return forApi(getCustomerById(tenantId, String.valueOf(id)));
     }
 
     @Transactional
     public Customer updateCustomer(String id, CustomerRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         Customer old = getCustomerById(tenantId, id);
         validateText(request.getName(), "会员姓名不能为空");
         validateText(request.getPhone(), "手机号不能为空");
@@ -149,19 +166,20 @@ public class BarbershopService {
                 """,
             request.getName().trim(), phone, verifyCode, defaultText(request.getRemark()), tenantId, parseId(id));
         recordLog("UPDATE_CUSTOMER", "customer", id, "更新会员: " + request.getName().trim());
-        return getCustomerById(tenantId, id);
+        return forApi(getCustomerById(tenantId, id));
     }
 
     @Transactional
     public Customer toggleCustomerStatus(String id) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         Customer old = getCustomerById(tenantId, id);
         String next = "active".equals(old.getStatus()) ? "inactive" : "active";
         jdbcTemplate.update("UPDATE t_customer SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ? AND id = ?",
             next, tenantId, parseId(id));
         recordLog("active".equals(next) ? "RESTORE_CUSTOMER" : "DELETE_CUSTOMER", "customer", id,
             ("active".equals(next) ? "恢复" : "停用") + "会员: " + old.getName());
-        return getCustomerById(tenantId, id);
+        return forApi(getCustomerById(tenantId, id));
     }
 
     public List<Employee> listEmployees(String keyword) {
@@ -251,6 +269,8 @@ public class BarbershopService {
     @Transactional
     public Employee createEmployee(EmployeeRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
+        assertEmployeeQuota(tenantId);
         validateText(request.getName(), "员工姓名不能为空");
         long id = idGenerator.nextId();
         jdbcTemplate.update("""
@@ -264,6 +284,7 @@ public class BarbershopService {
     @Transactional
     public Employee updateEmployee(String id, EmployeeRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         getEmployeeById(tenantId, id);
         validateText(request.getName(), "员工姓名不能为空");
         jdbcTemplate.update("UPDATE t_employee SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ? AND id = ?",
@@ -275,6 +296,7 @@ public class BarbershopService {
     @Transactional
     public Employee toggleEmployeeStatus(String id) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         Employee old = getEmployeeById(tenantId, id);
         String next = "active".equals(old.getStatus()) ? "inactive" : "active";
         jdbcTemplate.update("UPDATE t_employee SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ? AND id = ?",
@@ -324,6 +346,7 @@ public class BarbershopService {
     @Transactional
     public ServiceType createServiceType(ServiceTypeRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         validateText(request.getName(), "服务名称不能为空");
         validateAmount(request.getPrice(), "价格必须大于等于0");
         long id = idGenerator.nextId();
@@ -338,6 +361,7 @@ public class BarbershopService {
     @Transactional
     public ServiceType updateServiceType(String id, ServiceTypeRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         getServiceById(tenantId, id);
         validateText(request.getName(), "服务名称不能为空");
         validateAmount(request.getPrice(), "价格必须大于等于0");
@@ -352,6 +376,7 @@ public class BarbershopService {
     @Transactional
     public ServiceType toggleServiceTypeStatus(String id) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         ServiceType old = getServiceById(tenantId, id);
         String next = "active".equals(old.getStatus()) ? "inactive" : "active";
         jdbcTemplate.update("UPDATE t_service_type SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ? AND id = ?",
@@ -364,6 +389,7 @@ public class BarbershopService {
     @Transactional
     public RechargeRecord createRecharge(RechargeRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         ReentrantLock lock = lockFor(tenantId);
         lock.lock();
         try {
@@ -391,6 +417,7 @@ public class BarbershopService {
     @Transactional
     public ConsumeRecord createConsume(ConsumeRequest request) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         ReentrantLock lock = lockFor(tenantId);
         lock.lock();
         try {
@@ -402,9 +429,13 @@ public class BarbershopService {
             ensureActive(employee.getStatus(), "员工已停用");
             ensureActive(serviceType.getStatus(), "服务类型已停用");
             if (request.getVerifyCode() == null || request.getVerifyCode().isBlank()) {
+                recordLog("CONSUME_VERIFY_FAIL", "customer", request.getCustomerId(),
+                    "消费校验码为空 会员=" + customer.getName());
                 throw new IllegalArgumentException("请输入4位校验码");
             }
             if (!Objects.equals(customer.getVerifyCode(), request.getVerifyCode().trim())) {
+                recordLog("CONSUME_VERIFY_FAIL", "customer", request.getCustomerId(),
+                    "消费校验码错误 会员=" + customer.getName() + " 操作人=" + TenantContext.getUsername());
                 throw new IllegalArgumentException("校验码错误，无法消费");
             }
 
@@ -441,6 +472,7 @@ public class BarbershopService {
     @Transactional
     public RechargeRecord reverseRecharge(String id, String reason) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         ReentrantLock lock = lockFor(tenantId);
         lock.lock();
         try {
@@ -485,6 +517,7 @@ public class BarbershopService {
     @Transactional
     public ConsumeRecord reverseConsume(String id, String reason) {
         long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
         ReentrantLock lock = lockFor(tenantId);
         lock.lock();
         try {
@@ -716,22 +749,29 @@ public class BarbershopService {
         map.put("activeEmployees", jdbcTemplate.queryForObject(
             "SELECT COUNT(1) FROM t_employee WHERE tenant_id = ? AND status = 'active'", Long.class, tenantId));
         map.put("totalBalance", totalBalance == null ? BigDecimal.ZERO : totalBalance);
+        String today = dbDialect.todayExpr();
         map.put("todayRecharge", jdbcTemplate.queryForObject(
             """
                 SELECT COALESCE(SUM(amount),0) FROM t_recharge_record
                 WHERE tenant_id = ? AND COALESCE(status,'normal') = 'normal'
-                  AND DATE(created_at) = DATE('now', 'localtime')
-                """,
+                  AND DATE(created_at) = %s
+                """.formatted(today),
             BigDecimal.class, tenantId));
         map.put("todayConsume", jdbcTemplate.queryForObject(
             """
                 SELECT COALESCE(SUM(amount),0) FROM t_consume_record
                 WHERE tenant_id = ? AND COALESCE(status,'normal') = 'normal'
-                  AND DATE(created_at) = DATE('now', 'localtime')
-                """,
+                  AND DATE(created_at) = %s
+                """.formatted(today),
             BigDecimal.class, tenantId));
         map.put("auditCount", jdbcTemplate.queryForObject(
             "SELECT COUNT(1) FROM t_audit_log WHERE tenant_id = ?", Long.class, tenantId));
+        Map<String, Object> shop = getShopProfile();
+        map.put("shopName", shop.get("shopName"));
+        map.put("tenantKey", shop.get("tenantKey"));
+        map.put("planCode", shop.get("planCode"));
+        map.put("customerQuota", shop.get("customerQuota"));
+        map.put("employeeQuota", shop.get("employeeQuota"));
         return map;
     }
 
@@ -822,6 +862,114 @@ public class BarbershopService {
         );
     }
 
+    // ---------- shop profile (t_tenant) ----------
+
+    public Map<String, Object> getShopProfile() {
+        long tenantId = tenantId();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+                SELECT tenant_key, shop_name, status, plan_code, max_customers, max_employees
+                FROM t_tenant WHERE id = ?
+                """,
+            tenantId
+        );
+        Map<String, Object> map = new HashMap<>();
+        if (rows.isEmpty()) {
+            map.put("tenantId", String.valueOf(tenantId));
+            map.put("tenantKey", "");
+            map.put("shopName", "我的理发店");
+            map.put("status", "active");
+            map.put("planCode", "free");
+            map.put("maxCustomers", 5000);
+            map.put("maxEmployees", 50);
+        } else {
+            Map<String, Object> t = rows.get(0);
+            map.put("tenantId", String.valueOf(tenantId));
+            map.put("tenantKey", String.valueOf(t.get("tenant_key")));
+            map.put("shopName", String.valueOf(t.get("shop_name")));
+            map.put("status", String.valueOf(t.get("status")));
+            map.put("planCode", String.valueOf(t.get("plan_code")));
+            map.put("maxCustomers", ((Number) t.get("max_customers")).intValue());
+            map.put("maxEmployees", ((Number) t.get("max_employees")).intValue());
+        }
+        Long customerCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM t_customer WHERE tenant_id = ?", Long.class, tenantId
+        );
+        Long employeeCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM t_employee WHERE tenant_id = ? AND status = 'active'", Long.class, tenantId
+        );
+        int usedCustomers = customerCount == null ? 0 : customerCount.intValue();
+        int usedEmployees = employeeCount == null ? 0 : employeeCount.intValue();
+        int maxCustomers = ((Number) map.get("maxCustomers")).intValue();
+        int maxEmployees = ((Number) map.get("maxEmployees")).intValue();
+        map.put("usedCustomers", usedCustomers);
+        map.put("usedEmployees", usedEmployees);
+        map.put("customerQuota", usedCustomers + " / " + maxCustomers);
+        map.put("employeeQuota", usedEmployees + " / " + maxEmployees);
+        return map;
+    }
+
+    @Transactional
+    public Map<String, Object> updateShopProfile(String shopName) {
+        if (shopName == null || shopName.isBlank()) {
+            throw new IllegalArgumentException("门店名称不能为空");
+        }
+        String name = shopName.trim();
+        if (name.length() > 64) {
+            throw new IllegalArgumentException("门店名称最多64字");
+        }
+        long tenantId = tenantId();
+        tenantAccessService.assertCanWrite(tenantId);
+        Integer exists = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM t_tenant WHERE id = ?", Integer.class, tenantId
+        );
+        if (exists == null || exists == 0) {
+            throw new IllegalArgumentException("门店租户不存在，请联系平台");
+        }
+        jdbcTemplate.update(
+            "UPDATE t_tenant SET shop_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            name, tenantId
+        );
+        recordLog("UPDATE_SHOP", "tenant", String.valueOf(tenantId), "更新门店名称: " + name);
+        return getShopProfile();
+    }
+
+    private void assertCustomerQuota(long tenantId) {
+        int max = readTenantLimit(tenantId, "max_customers", 5000);
+        Long count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM t_customer WHERE tenant_id = ?", Long.class, tenantId
+        );
+        long used = count == null ? 0 : count;
+        if (used >= max) {
+            throw new IllegalArgumentException("会员数量已达套餐上限（" + max + "），请联系平台升级");
+        }
+    }
+
+    private void assertEmployeeQuota(long tenantId) {
+        int max = readTenantLimit(tenantId, "max_employees", 50);
+        Long count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM t_employee WHERE tenant_id = ? AND status = 'active'",
+            Long.class, tenantId
+        );
+        long used = count == null ? 0 : count;
+        if (used >= max) {
+            throw new IllegalArgumentException("在岗员工数已达套餐上限（" + max + "），请联系平台升级");
+        }
+    }
+
+    private int readTenantLimit(long tenantId, String column, int defaultVal) {
+        // column 仅内部常量
+        try {
+            Integer v = jdbcTemplate.queryForObject(
+                "SELECT " + column + " FROM t_tenant WHERE id = ?",
+                Integer.class, tenantId
+            );
+            return v == null || v <= 0 ? defaultVal : v;
+        } catch (Exception e) {
+            return defaultVal;
+        }
+    }
+
     // ---------- settings ----------
 
     public Map<String, String> getSettings() {
@@ -887,6 +1035,28 @@ public class BarbershopService {
     // ---------- private helpers ----------
 
     private Customer mapCustomer(java.sql.ResultSet rs) throws java.sql.SQLException {
+        String verify = rs.getString("verify_code");
+        // 列表/查询返回：无「查看校验码」权限时不返回明文（消费校验仍用 getCustomerById 内部逻辑，见 mask）
+        if (!rolePermissionService.has(StaffRole.Perm.VIEW_VERIFY_CODE)) {
+            verify = null;
+        }
+        return new Customer(
+            String.valueOf(rs.getLong("id")),
+            rs.getString("name"),
+            rs.getString("phone"),
+            verify,
+            rs.getString("remark"),
+            rs.getString("status"),
+            rs.getBigDecimal("balance"),
+            rs.getTimestamp("created_at").toLocalDateTime()
+        );
+    }
+
+    /**
+     * 内部读取（含校验码明文），不受 VIEW_VERIFY_CODE 影响。
+     * 用于消费扣款等服务端校验。
+     */
+    private Customer mapCustomerInternal(java.sql.ResultSet rs) throws java.sql.SQLException {
         return new Customer(
             String.valueOf(rs.getLong("id")),
             rs.getString("name"),
@@ -928,12 +1098,20 @@ public class BarbershopService {
                 LEFT JOIN t_account a ON a.customer_id = c.id AND a.tenant_id = c.tenant_id
                 WHERE c.tenant_id = ? AND c.id = ?
                 """,
-            (rs, i) -> mapCustomer(rs),
+            (rs, i) -> mapCustomerInternal(rs),
             tenantId, parseId(id));
         if (list.isEmpty()) {
             throw new IllegalArgumentException("会员不存在");
         }
         return list.get(0);
+    }
+
+    /** API 出参脱敏校验码 */
+    private Customer forApi(Customer c) {
+        if (c != null && !rolePermissionService.has(StaffRole.Perm.VIEW_VERIFY_CODE)) {
+            c.setVerifyCode(null);
+        }
+        return c;
     }
 
     private Employee getEmployeeById(long tenantId, String id) {
@@ -1076,7 +1254,10 @@ public class BarbershopService {
             case "RESTORE_SERVICE" -> "恢复服务";
             case "CREATE_RECHARGE" -> "创建充值";
             case "CREATE_CONSUME" -> "创建消费";
+            case "CONSUME_VERIFY_FAIL" -> "消费校验码失败";
             case "REVERSE_RECHARGE" -> "冲正充值";
+            case "LOGIN_OK" -> "登录成功";
+            case "LOGIN_FAIL" -> "登录失败";
             case "REVERSE_CONSUME" -> "冲正消费";
             case "UPDATE_SETTINGS" -> "更新设置";
             case "BACKUP" -> "数据备份";

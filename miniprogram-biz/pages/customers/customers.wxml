@@ -1,0 +1,16 @@
+<view class="page">
+  <view class="search card">
+    <input placeholder="姓名/手机号" value="{{keyword}}" bindinput="onKeyword" confirm-type="search" bindconfirm="search" />
+    <button size="mini" class="btn-primary" bindtap="search">搜索</button>
+    <button size="mini" class="btn-ghost" bindtap="goEdit">新增</button>
+  </view>
+  <view wx:if="{{!items.length && !loading}}" class="empty">暂无会员</view>
+  <view class="card item" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="goEdit">
+    <view class="row">
+      <view class="name">{{item.name}}</view>
+      <view class="bal">¥{{item.balance}}</view>
+    </view>
+    <view class="muted">{{item.phone}} · {{item.status === 'active' ? '正常' : '停用'}}</view>
+  </view>
+  <view class="more muted" wx:if="{{page < totalPages}}" bindtap="more">加载更多</view>
+</view>

@@ -1,0 +1,22 @@
+.search {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+.search input {
+  flex: 1;
+  background: #f8fafc;
+  padding: 12rpx 16rpx;
+  border-radius: 8rpx;
+}
+.item .name {
+  font-weight: 600;
+}
+.item .bal {
+  color: #16a34a;
+  font-weight: 600;
+}
+.more {
+  text-align: center;
+  padding: 24rpx;
+}

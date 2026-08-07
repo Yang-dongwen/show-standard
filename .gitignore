@@ -1,2 +1,61 @@
-/frontend/node_modules/
-/.idea/
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node dependencies (install under frontend/ or frontend-saas/)
+node_modules/
+
+# Root-level npm mistake — real apps live under frontend/ and frontend-saas/
+# Do not run npm install at repo root.
+/package.json
+/package-lock.json
+
+# Maven
+target/
+*.class
+hs_err_pid*
+replay_pid*
+
+# Desktop packaging outputs (jlink / jpackage)
+/build/
+/dist/
+*.msi
+
+# Logs / local runtime data
+*.log
+logs/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Frontend local caches (build output goes to src/main/resources/static)
+frontend/dist/
+frontend-saas/dist/
+.vite/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Local scratch / temp API dumps (do not commit)
+tmp_api/
+tmp/
+temp/
+*.tmp
+
+# Optional OS junk
+$RECYCLE.BIN/
+*.swp
+*~

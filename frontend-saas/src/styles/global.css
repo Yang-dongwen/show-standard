@@ -1,0 +1,231 @@
+/* ===== Show SaaS Design System ===== */
+
+:root {
+  --saas-bg: #f4f6fb;
+  --saas-bg-elevated: #ffffff;
+  --saas-bg-muted: #f8fafc;
+  --saas-bg-soft: #eef2ff;
+
+  --saas-sidebar: #0b1220;
+  --saas-sidebar-2: #111827;
+  --saas-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --saas-sidebar-active: linear-gradient(90deg, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.06));
+  --saas-sidebar-border: rgba(255, 255, 255, 0.06);
+  --saas-sidebar-text: #94a3b8;
+  --saas-sidebar-text-strong: #e2e8f0;
+
+  --saas-text: #0f172a;
+  --saas-text-2: #475569;
+  --saas-text-3: #94a3b8;
+
+  --saas-primary: #6366f1;
+  --saas-primary-hover: #4f46e5;
+  --saas-primary-soft: rgba(99, 102, 241, 0.12);
+  --saas-accent: #8b5cf6;
+  --saas-cyan: #06b6d4;
+  --saas-emerald: #10b981;
+  --saas-amber: #f59e0b;
+  --saas-rose: #f43f5e;
+
+  --saas-border: #e2e8f0;
+  --saas-border-soft: #f1f5f9;
+
+  --saas-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --saas-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --saas-shadow-md: 0 8px 28px rgba(15, 23, 42, 0.08);
+  --saas-shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.12);
+
+  --saas-radius-sm: 8px;
+  --saas-radius-md: 12px;
+  --saas-radius-lg: 16px;
+  --saas-radius-xl: 20px;
+
+  --saas-sidebar-w: 248px;
+  --saas-header-h: 64px;
+  --saas-font: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+
+  --el-color-primary: #6366f1;
+  --el-color-primary-light-3: #818cf8;
+  --el-color-primary-light-5: #a5b4fc;
+  --el-color-primary-light-7: #c7d2fe;
+  --el-color-primary-light-8: #e0e7ff;
+  --el-color-primary-light-9: #eef2ff;
+  --el-color-primary-dark-2: #4f46e5;
+  --el-border-radius-base: 8px;
+  --el-font-family: var(--saas-font);
+  --el-border-color: var(--saas-border);
+  --el-border-color-light: var(--saas-border-soft);
+  --el-bg-color-page: var(--saas-bg);
+  --el-box-shadow-light: var(--saas-shadow-md);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100%;
+  font-family: var(--saas-font);
+  font-size: 14px;
+  color: var(--saas-text);
+  background: var(--saas-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Shared page chrome */
+.page-shell {
+  padding: 4px 4px 32px;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--saas-text);
+}
+
+.page-header .page-desc {
+  margin: 6px 0 0;
+  color: var(--saas-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Cards */
+.saas-card {
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-radius-lg);
+  box-shadow: var(--saas-shadow-xs);
+}
+
+.saas-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--saas-border-soft);
+}
+
+.saas-card-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--saas-text);
+}
+
+.saas-card-head .sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--saas-text-3);
+}
+
+.saas-card-body {
+  padding: 16px 18px;
+}
+
+/* Tables polish */
+.saas-table-wrap {
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--saas-shadow-xs);
+}
+
+.saas-table-wrap .el-table {
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-header-text-color: #64748b;
+  --el-table-row-hover-bg-color: #f8fafc;
+  --el-table-border-color: #f1f5f9;
+}
+
+.saas-table-wrap .el-table th.el-table__cell {
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.saas-table-wrap .el-table .el-table__cell {
+  padding: 12px 0;
+}
+
+/* Toolbar */
+.toolbar-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Empty / tip */
+.saas-tip {
+  margin-top: 12px;
+  color: var(--saas-text-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Element dialog polish */
+.el-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.el-drawer__header {
+  margin-bottom: 12px !important;
+  font-weight: 600;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

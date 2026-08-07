@@ -1,0 +1,35 @@
+<view class="page">
+  <view class="hero card">
+    <view class="shop">{{shopName}}</view>
+    <view class="muted">门店码 {{summary.tenantKey || '-'}} · {{summary.planCode || 'free'}}</view>
+    <view class="muted">配额 会员 {{summary.customerQuota || '-'}} / 员工 {{summary.employeeQuota || '-'}}</view>
+  </view>
+  <view class="kpi-grid">
+    <view class="kpi card">
+      <view class="n">{{summary.activeCustomers || 0}}</view>
+      <view class="l">活跃会员</view>
+    </view>
+    <view class="kpi card">
+      <view class="n">{{summary.totalBalance || 0}}</view>
+      <view class="l">总余额</view>
+    </view>
+    <view class="kpi card">
+      <view class="n">{{summary.todayRecharge || 0}}</view>
+      <view class="l">今日充值</view>
+    </view>
+    <view class="kpi card">
+      <view class="n">{{summary.todayConsume || 0}}</view>
+      <view class="l">今日消费</view>
+    </view>
+  </view>
+  <view class="card">
+    <view class="sec">快捷入口</view>
+    <view class="actions">
+      <button size="mini" class="btn-primary" data-url="/pages/customers/customers" bindtap="go">会员</button>
+      <button size="mini" class="btn-primary" data-url="/pages/transactions/transactions" bindtap="go">收银</button>
+      <button size="mini" class="btn-ghost" data-url="/pages/employees/employees" bindtap="go">员工</button>
+      <button size="mini" class="btn-ghost" data-url="/pages/services/services" bindtap="go">服务</button>
+      <button size="mini" class="btn-ghost" data-url="/pages/reports/reports" bindtap="go">报表</button>
+    </view>
+  </view>
+</view>

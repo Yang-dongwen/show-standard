@@ -1,0 +1,48 @@
+<view class="page">
+  <view class="tabs card">
+    <view class="tab {{mode==='consume'?'on':''}}" data-mode="consume" bindtap="setMode">消费</view>
+    <view class="tab {{mode==='recharge'?'on':''}}" data-mode="recharge" bindtap="setMode">充值</view>
+  </view>
+  <view class="card">
+    <view class="field" bindtap="pickCustomer">
+      <view class="field-label">会员</view>
+      <view>{{customerName || '点击选择'}}</view>
+    </view>
+    <block wx:if="{{mode==='consume'}}">
+      <view class="field" bindtap="pickEmployee">
+        <view class="field-label">员工</view>
+        <view>{{employeeName || '点击选择'}}</view>
+      </view>
+      <view class="field" bindtap="pickService">
+        <view class="field-label">服务</view>
+        <view>{{serviceName || '点击选择'}}</view>
+      </view>
+      <view class="field">
+        <view class="field-label">校验码</view>
+        <input value="{{verifyCode}}" data-k="verifyCode" bindinput="onField" />
+      </view>
+    </block>
+    <view class="field">
+      <view class="field-label">金额</view>
+      <input type="digit" value="{{amount}}" data-k="amount" bindinput="onField" />
+    </view>
+    <view class="field">
+      <view class="field-label">备注</view>
+      <input value="{{remark}}" data-k="remark" bindinput="onField" />
+    </view>
+    <button class="btn-primary" loading="{{submitting}}" bindtap="submit">
+      {{mode==='consume'?'确认消费':'确认充值'}}
+    </button>
+  </view>
+  <view class="card">
+    <view class="sec">最近流水</view>
+    <view class="row line" wx:for="{{rows}}" wx:key="id">
+      <view>
+        <view>{{item.type || item.txType || '交易'}} · {{item.customerName || ''}}</view>
+        <view class="muted">{{item.createdAt || item.created_at || ''}}</view>
+      </view>
+      <view class="amt">¥{{item.amount}}</view>
+    </view>
+    <view wx:if="{{!rows.length}}" class="empty">暂无流水</view>
+  </view>
+</view>

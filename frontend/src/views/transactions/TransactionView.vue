@@ -1,7 +1,7 @@
 <template>
   <div class="page-view">
     <el-row :gutter="14">
-      <el-col :xs="24" :md="12">
+      <el-col v-if="canRecharge" :xs="24" :md="12">
         <el-card shadow="never" class="op-card">
           <template #header>
             <div class="card-head">
@@ -56,7 +56,7 @@
         </el-card>
       </el-col>
 
-      <el-col :xs="24" :md="12">
+      <el-col v-if="canConsume" :xs="24" :md="canRecharge ? 12 : 24">
         <el-card shadow="never" class="op-card">
           <template #header>
             <div class="card-head">
@@ -163,7 +163,7 @@
               @keyup.enter="reload"
               @clear="reload"
             />
-            <el-button :loading="exporting" @click="handleExport">导出 CSV</el-button>
+            <el-button v-if="canExport" :loading="exporting" @click="handleExport">导出 CSV</el-button>
           </div>
         </div>
       </template>
@@ -214,8 +214,13 @@ import { createConsume, createRecharge, fetchTransactions } from '@/api/transact
 import { downloadWithAuth } from '@/utils/download.js'
 import { dateOffset, dateTime, last4, money } from '@/utils/format.js'
 import { debounce } from '@/utils/debounce.js'
+import { hasPermission } from '@/utils/permissions.js'
 import MoneyText from '@/components/common/MoneyText.vue'
 import EmptyHint from '@/components/common/EmptyHint.vue'
+
+const canRecharge = computed(() => hasPermission('recharge'))
+const canConsume = computed(() => hasPermission('consume'))
+const canExport = computed(() => hasPermission('reports'))
 
 const selectLoading = ref(false)
 const txLoading = ref(false)

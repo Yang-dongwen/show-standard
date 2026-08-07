@@ -1,0 +1,46 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/home/home",
+    "pages/customers/customers",
+    "pages/customer-edit/customer-edit",
+    "pages/transactions/transactions",
+    "pages/employees/employees",
+    "pages/services/services",
+    "pages/reports/reports",
+    "pages/shop/shop"
+  ],
+  "window": {
+    "navigationBarTitleText": "Show 门店",
+    "navigationBarBackgroundColor": "#0f172a",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f1f5f9",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#5b5ce2",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/customers/customers",
+        "text": "会员"
+      },
+      {
+        "pagePath": "pages/transactions/transactions",
+        "text": "收银"
+      },
+      {
+        "pagePath": "pages/shop/shop",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

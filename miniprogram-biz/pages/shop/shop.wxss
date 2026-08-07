@@ -1,0 +1,17 @@
+.sec {
+  font-size: 34rpx;
+  font-weight: 700;
+  margin-bottom: 8rpx;
+}
+.links .link {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+.logout {
+  margin: 24rpx;
+}
+.btn-wx {
+  margin-top: 16rpx;
+  background: #07c160;
+  color: #fff;
+}

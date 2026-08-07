@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: ddmo
+  # 默认：本地桌面版 → SQLite（仅本机使用时无需 MySQL）
+  # 云版：--spring.profiles.active=cloud → application-cloud.yml（MySQL）
   datasource:
     url: jdbc:sqlite:${user.home}/.show/show.db
     username: show
@@ -20,10 +22,16 @@ spring:
     lazy-initialization: true
   jmx:
     enabled: false
+  # 建表改由 Flyway 管理，不再使用 spring.sql.init
   sql:
     init:
-      mode: always
-      encoding: UTF-8
+      mode: never
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/sqlite
+    baseline-on-migrate: true
+    baseline-version: 1
+    validate-on-migrate: true
   servlet:
     multipart:
       max-file-size: 200MB
@@ -35,17 +43,40 @@ logging:
     com.ddmo: DEBUG
 
 app:
+  # ========== 客户交付两套 SKU（二选一）==========
+  # desktop = 本地买断版：SQLite 本机存储，一次性买断，无小程序、无 SaaS 运营台、不用云 MySQL
+  # cloud   = SaaS 云版：必须 MySQL（application-cloud.yml），订阅制，运营台 + 小程序
+  # 桌面安装包固定 desktop；云服务器固定 cloud profile
+  deployment: desktop
+  security:
+    # 生产 cloud 请设 true：禁止 mock 微信、demo 密钥、弱引导密码
+    strict-cloud: false
   jwt:
     # 运行时优先使用 ~/.show/secrets.properties；以下仅为启动引导占位
-    secret: ${SHOW_JWT_SECRET:bootstrap-placeholder-change-me-32bytes-min!!}
+    secret: bootstrap-placeholder-change-me-32bytes-min!!
     expire-minutes: 720
-    tenant-aes-key: ${SHOW_TENANT_AES_KEY:bootstrap-aes-placeholder-key}
+    tenant-aes-key: bootstrap-aes-placeholder-key
   auth:
-    # 是否允许校验并迁移历史明文密码（新部署建议 false）
     allow-plaintext-password: false
   register:
-    # open=任意注册 | first-only=仅首个店长 | invite=需邀请码
+    # C 端本地注册：open | first-only | invite
     mode: first-only
-    invite-code: ${SHOW_INVITE_CODE:}
+    # mode=invite 时使用的静态邀请码（示例）
+    invite-code: DEMO-CEND
+  saas:
+    # 是否允许空库创建引导管理员（生产建议 false）
+    bootstrap-enabled: true
+    # SaaS 运营引导账号（示例，首次启动且库中无管理员时创建）
+    bootstrap-username: platform
+    bootstrap-password: platform123
+    # 开店静态邀请码兜底（示例；库表邀请码优先）
+    invite-code: WELCOME
+  wx:
+    miniapp:
+      # 本地版关闭；cloud 下见 application-cloud.yml
+      enabled: false
+      app-id: demo-app-id
+      app-secret: demo-app-secret
+      mock: true
   backup:
     dir: ${user.home}/.show/backups

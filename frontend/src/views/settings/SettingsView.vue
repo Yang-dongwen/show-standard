@@ -1,5 +1,28 @@
 <template>
   <div class="page-view">
+    <el-card shadow="never" class="shop-card" v-loading="shopLoading">
+      <template #header>
+        <div class="card-head">
+          <span>门店资料</span>
+          <el-tag size="small" type="info" effect="plain">{{ shop.planCode || 'free' }}</el-tag>
+        </div>
+      </template>
+      <el-form label-width="88px" class="shop-form" @submit.prevent>
+        <el-form-item label="门店名称">
+          <el-input v-model="shopForm.shopName" maxlength="64" show-word-limit class="field-md" />
+        </el-form-item>
+        <el-form-item label="门店码">
+          <el-input :model-value="shop.tenantKey || '-'" readonly class="field-md" />
+        </el-form-item>
+        <el-form-item label="配额">
+          <span class="quota-text">会员 {{ shop.customerQuota || '-' }} · 员工 {{ shop.employeeQuota || '-' }}</span>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="shopSaving" @click="saveShop">保存门店资料</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <div class="page-toolbar">
       <div class="page-toolbar-left">
         <span class="hint-text">管理门店服务项目与默认价格，消费时可快速带出</span>
@@ -87,12 +110,17 @@ import {
   toggleServiceStatus,
   updateService
 } from '@/api/serviceType.js'
+import { fetchShop, updateShop } from '@/api/shop.js'
 import { slicePage } from '@/utils/format.js'
 import MoneyText from '@/components/common/MoneyText.vue'
 import EmptyHint from '@/components/common/EmptyHint.vue'
 
 const loading = ref(false)
 const saving = ref(false)
+const shopLoading = ref(false)
+const shopSaving = ref(false)
+const shop = ref({})
+const shopForm = reactive({ shopName: '' })
 const drawerVisible = ref(false)
 const services = ref([])
 const page = ref(1)
@@ -107,6 +135,37 @@ const rules = {
 const pagedServices = computed(() => slicePage(services.value, page.value, size))
 const registerRefresh = inject('registerRefresh', null)
 let unregister = null
+
+async function loadShop() {
+  shopLoading.value = true
+  try {
+    shop.value = (await fetchShop()) || {}
+    shopForm.shopName = shop.value.shopName || ''
+  } finally {
+    shopLoading.value = false
+  }
+}
+
+async function saveShop() {
+  if (!shopForm.shopName?.trim()) {
+    ElMessage.warning('请输入门店名称')
+    return
+  }
+  shopSaving.value = true
+  try {
+    shop.value = await updateShop({ shopName: shopForm.shopName.trim() })
+    ElMessage.success('门店资料已保存')
+    try {
+      const user = JSON.parse(sessionStorage.getItem('user') || '{}')
+      user.shopName = shop.value.shopName
+      sessionStorage.setItem('user', JSON.stringify(user))
+    } catch {
+      /* ignore */
+    }
+  } finally {
+    shopSaving.value = false
+  }
+}
 
 async function load() {
   loading.value = true
@@ -175,11 +234,34 @@ async function handleToggle(row) {
   }
 }
 
+async function refreshAll() {
+  await Promise.all([load(), loadShop()])
+}
+
 onMounted(async () => {
-  await load()
-  if (registerRefresh) unregister = registerRefresh(load)
+  await refreshAll()
+  if (registerRefresh) unregister = registerRefresh(refreshAll)
 })
 onUnmounted(() => {
   if (unregister) unregister()
 })
 </script>
+
+<style scoped>
+.shop-card {
+  margin-bottom: 16px;
+  flex: 0 0 auto;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.quota-text {
+  color: #64748b;
+  font-size: 13px;
+}
+.shop-form {
+  max-width: 480px;
+}
+</style>

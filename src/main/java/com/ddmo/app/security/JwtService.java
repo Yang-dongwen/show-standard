@@ -16,10 +16,19 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class JwtService {
+
+    public static final String TYP_MANAGER = "manager";
+    /** SaaS 平台运营 Token 类型 */
+    public static final String TYP_SAAS = "saas";
+    /** 兼容早期 platform 命名 */
+    public static final String TYP_PLATFORM = "platform";
+    /** 微信绑定前临时会话（仅含 openid，短有效期） */
+    public static final String TYP_WX_PRE = "wx_pre";
 
     private final JwtProperties jwtProperties;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -29,23 +38,140 @@ public class JwtService {
     }
 
     public String generateToken(String username, long tenantId) {
-        String encryptedTenantId = encryptTenantId(String.valueOf(tenantId));
+        return generateToken(username, tenantId, TYP_MANAGER, null, null);
+    }
+
+    public String generateToken(String username, long tenantId, long managerId, String role) {
+        return generateToken(username, tenantId, TYP_MANAGER, managerId, role);
+    }
+
+    public String generateSaasToken(String username) {
         Instant now = Instant.now();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("typ", TYP_SAAS);
         return Jwts.builder()
             .subject(username)
-            .claims(Map.of("tid_enc", encryptedTenantId))
+            .claims(claims)
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plusSeconds(jwtProperties.getExpireMinutes() * 60)))
             .signWith(signKey())
             .compact();
     }
 
-    public long parseTenantId(String token) {
-        Claims claims = Jwts.parser()
+    /** @deprecated 使用 {@link #generateSaasToken(String)} */
+    @Deprecated
+    public String generatePlatformToken(String username) {
+        return generateSaasToken(username);
+    }
+
+    public String generateToken(String username, long tenantId, String typ) {
+        return generateToken(username, tenantId, typ, null, null);
+    }
+
+    public String generateToken(String username, long tenantId, String typ, Long managerId, String role) {
+        String encryptedTenantId = encryptTenantId(String.valueOf(tenantId));
+        Instant now = Instant.now();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tid_enc", encryptedTenantId);
+        claims.put("typ", typ == null || typ.isBlank() ? TYP_MANAGER : typ);
+        if (managerId != null) {
+            claims.put("mid", managerId);
+        }
+        if (role != null && !role.isBlank()) {
+            claims.put("role", role);
+        }
+        return Jwts.builder()
+            .subject(username)
+            .claims(claims)
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plusSeconds(jwtProperties.getExpireMinutes() * 60)))
+            .signWith(signKey())
+            .compact();
+    }
+
+    public Long parseManagerId(String token) {
+        Claims claims = parseClaims(token);
+        Object mid = claims.get("mid");
+        if (mid == null) {
+            return null;
+        }
+        if (mid instanceof Number n) {
+            return n.longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(mid));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String parseRole(String token) {
+        Claims claims = parseClaims(token);
+        String role = claims.get("role", String.class);
+        if (role == null || role.isBlank()) {
+            return StaffRole.OWNER.code();
+        }
+        return role;
+    }
+
+    public Claims parseClaims(String token) {
+        return Jwts.parser()
             .verifyWith(signKey())
             .build()
             .parseSignedClaims(token)
             .getPayload();
+    }
+
+    public String parseTyp(String token) {
+        Claims claims = parseClaims(token);
+        String typ = claims.get("typ", String.class);
+        if (typ == null || typ.isBlank()) {
+            // 兼容旧 token（无 typ）
+            return TYP_MANAGER;
+        }
+        return typ;
+    }
+
+    public String parseSubject(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    /** 微信 code2Session 后、尚未绑定店长时的临时凭证（15 分钟） */
+    public String generateWxPreToken(String openid) {
+        Instant now = Instant.now();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("typ", TYP_WX_PRE);
+        claims.put("openid", openid);
+        return Jwts.builder()
+            .subject(openid)
+            .claims(claims)
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plusSeconds(15 * 60)))
+            .signWith(signKey())
+            .compact();
+    }
+
+    public String parseWxPreOpenid(String preToken) {
+        Claims claims = parseClaims(preToken);
+        if (!TYP_WX_PRE.equals(claims.get("typ", String.class))) {
+            throw new IllegalArgumentException("无效的微信预登录凭证");
+        }
+        String openid = claims.get("openid", String.class);
+        if (openid == null || openid.isBlank()) {
+            openid = claims.getSubject();
+        }
+        if (openid == null || openid.isBlank()) {
+            throw new IllegalArgumentException("预登录凭证缺少 openid");
+        }
+        return openid;
+    }
+
+    public long parseTenantId(String token) {
+        Claims claims = parseClaims(token);
+        String typ = claims.get("typ", String.class);
+        if (TYP_SAAS.equals(typ) || TYP_PLATFORM.equals(typ) || TYP_WX_PRE.equals(typ)) {
+            throw new IllegalArgumentException("该令牌不含租户信息");
+        }
         String encryptedTenantId = claims.get("tid_enc", String.class);
         if (encryptedTenantId == null || encryptedTenantId.isBlank()) {
             throw new IllegalArgumentException("token 缺少租户信息");

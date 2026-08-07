@@ -4,7 +4,7 @@ public class RegisterRequest {
     private String username;
     private String password;
     private String nickname;
-    /** 当 app.register.mode=invite 时必填 */
+    /** 当 app.register.mode=invite 时必填（C 端静态码） */
     private String inviteCode;
 
     public String getUsername() {

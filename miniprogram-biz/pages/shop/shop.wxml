@@ -1,0 +1,27 @@
+<view class="card">
+  <view class="sec">{{user.nickname || user.username || '店长'}}</view>
+  <view class="muted">{{productNote}}</view>
+</view>
+<view class="card">
+  <view class="field">
+    <view class="field-label">门店名称</view>
+    <input value="{{shopName}}" bindinput="onName" />
+  </view>
+  <view class="muted">门店码 {{shop.tenantKey || '-'}}</view>
+  <view class="muted">配额 会员 {{shop.customerQuota || '-'}} · 员工 {{shop.employeeQuota || '-'}}</view>
+  <button class="btn-primary" bindtap="save">保存门店</button>
+</view>
+<view class="card">
+  <view class="row">
+    <view>微信绑定</view>
+    <view class="muted">{{wxBound ? '已绑定' : '未绑定'}}</view>
+  </view>
+  <button wx:if="{{!wxBound}}" size="mini" class="btn-wx" bindtap="bindWx">如何绑定</button>
+  <button wx:else size="mini" class="btn-ghost" bindtap="unbindWx">解除绑定</button>
+</view>
+<view class="card links">
+  <view class="link" data-url="/pages/employees/employees" bindtap="go">员工管理</view>
+  <view class="link" data-url="/pages/services/services" bindtap="go">服务项目</view>
+  <view class="link" data-url="/pages/reports/reports" bindtap="go">报表分析</view>
+</view>
+<button class="btn-ghost logout" bindtap="logout">退出登录</button>

@@ -1,6 +1,7 @@
 package com.ddmo.app.service;
 
 import com.ddmo.app.config.AppBackupProperties;
+import com.ddmo.app.config.DbDialect;
 import com.ddmo.app.security.TenantContext;
 import com.ddmo.app.util.SnowflakeIdGenerator;
 import org.slf4j.Logger;
@@ -31,14 +32,22 @@ public class BackupService {
     private final JdbcTemplate jdbcTemplate;
     private final AppBackupProperties backupProperties;
     private final SnowflakeIdGenerator idGenerator;
+    private final DbDialect dbDialect;
 
-    public BackupService(JdbcTemplate jdbcTemplate, AppBackupProperties backupProperties, SnowflakeIdGenerator idGenerator) {
+    public BackupService(
+        JdbcTemplate jdbcTemplate,
+        AppBackupProperties backupProperties,
+        SnowflakeIdGenerator idGenerator,
+        DbDialect dbDialect
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.backupProperties = backupProperties;
         this.idGenerator = idGenerator;
+        this.dbDialect = dbDialect;
     }
 
     public Map<String, Object> createBackup() {
+        assertSqliteBackupSupported();
         Path db = dbPath();
         if (!Files.exists(db)) {
             throw new IllegalStateException("数据库文件不存在: " + db);
@@ -90,6 +99,9 @@ public class BackupService {
     }
 
     public List<Map<String, Object>> listBackups() {
+        if (!dbDialect.isFileDatabase()) {
+            return List.of();
+        }
         Path dir = Path.of(backupProperties.getDir());
         List<Map<String, Object>> list = new ArrayList<>();
         if (!Files.isDirectory(dir)) {
@@ -119,11 +131,13 @@ public class BackupService {
      * 将上传/指定备份写入 restore-pending.db，需重启应用后生效。
      */
     public Map<String, Object> scheduleRestoreFromBackup(String fileName) {
+        assertSqliteBackupSupported();
         Path source = resolveBackupFile(fileName);
         return scheduleRestoreFromPath(source, fileName);
     }
 
     public Map<String, Object> scheduleRestoreFromUpload(InputStream in, String originalName) {
+        assertSqliteBackupSupported();
         try {
             Path dir = Path.of(System.getProperty("user.home"), ".show");
             Files.createDirectories(dir);
@@ -173,6 +187,14 @@ public class BackupService {
 
     private Path dbPath() {
         return Path.of(System.getProperty("user.home"), ".show", "show.db");
+    }
+
+    private void assertSqliteBackupSupported() {
+        if (!dbDialect.isFileDatabase()) {
+            throw new IllegalArgumentException(
+                "当前为云版 " + dbDialect.label() + " 数据源，不支持 SQLite 文件备份/恢复；请使用 mysqldump 等工具备份"
+            );
+        }
     }
 
     private void recordSystemLog(String action, String detail) {

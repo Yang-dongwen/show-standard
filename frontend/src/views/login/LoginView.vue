@@ -19,7 +19,7 @@
       <div class="login-card">
         <div class="card-header">
           <h2>欢迎回来</h2>
-          <p>登录店长账号，管理会员与收银</p>
+          <p>登录店长 / 店员账号，管理会员与收银</p>
         </div>
 
         <el-form
@@ -96,6 +96,9 @@
         <el-form-item label="昵称" prop="nickname">
           <el-input v-model="registerForm.nickname" class="field-sm" maxlength="6" show-word-limit placeholder="最多6字" />
         </el-form-item>
+        <el-form-item v-if="requireInviteCode" label="邀请码" prop="inviteCode">
+          <el-input v-model="registerForm.inviteCode" class="field-md" placeholder="本地静态邀请码" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button :disabled="registering" @click="registerVisible = false">取消</el-button>
@@ -120,6 +123,7 @@ const registering = ref(false)
 const rememberMe = ref(false)
 const registerVisible = ref(false)
 const registerAllowed = ref(true)
+const requireInviteCode = ref(false)
 const loginFormRef = ref()
 const registerFormRef = ref()
 
@@ -128,7 +132,8 @@ const registerForm = reactive({
   username: '',
   password: '',
   confirmPassword: '',
-  nickname: ''
+  nickname: '',
+  inviteCode: ''
 })
 
 const loginRules = {
@@ -155,6 +160,16 @@ const registerRules = {
   nickname: [
     { required: true, message: '请输入昵称', trigger: 'blur' },
     { max: 6, message: '昵称最多6个字', trigger: 'blur' }
+  ],
+  inviteCode: [
+    {
+      validator: (_r, v, cb) => {
+        if (requireInviteCode.value && (!v || !String(v).trim())) {
+          cb(new Error('请输入邀请码'))
+        } else cb()
+      },
+      trigger: 'blur'
+    }
   ]
 }
 
@@ -206,6 +221,7 @@ function resetRegister() {
   registerForm.password = ''
   registerForm.confirmPassword = ''
   registerForm.nickname = ''
+  registerForm.inviteCode = ''
 }
 
 async function handleRegister() {
@@ -243,6 +259,7 @@ onMounted(async () => {
   try {
     const status = await fetchRegisterStatus()
     registerAllowed.value = status?.allowed !== false
+    requireInviteCode.value = status?.requireInviteCode === true
   } catch {
     registerAllowed.value = true
   }

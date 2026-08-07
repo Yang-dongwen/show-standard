@@ -1,0 +1,36 @@
+.page {
+  padding-bottom: 40rpx;
+}
+.hero .shop {
+  font-size: 36rpx;
+  font-weight: 700;
+  margin-bottom: 8rpx;
+}
+.kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 12rpx;
+}
+.kpi {
+  width: calc(50% - 36rpx);
+  margin: 12rpx;
+}
+.kpi .n {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #5b5ce2;
+}
+.kpi .l {
+  margin-top: 8rpx;
+  color: #64748b;
+  font-size: 24rpx;
+}
+.sec {
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}

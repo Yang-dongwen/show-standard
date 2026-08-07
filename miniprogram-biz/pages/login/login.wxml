@@ -1,0 +1,26 @@
+<view class="wrap">
+  <view class="brand">
+    <view class="logo">S</view>
+    <view class="title">Show 门店</view>
+    <view class="sub">商家小程序 · 需云版 API</view>
+  </view>
+  <view class="card">
+    <view class="bind-tip" wx:if="{{bindMode}}">首次使用：微信已识别，请输入店长账号密码完成绑定</view>
+    <view class="field">
+      <view class="field-label">用户名</view>
+      <input placeholder="店长账号" value="{{username}}" bindinput="onUser" />
+    </view>
+    <view class="field">
+      <view class="field-label">密码</view>
+      <input password placeholder="密码" value="{{password}}" bindinput="onPwd" />
+    </view>
+    <button class="btn-primary" loading="{{loading}}" bindtap="onLogin">
+      {{bindMode ? '绑定并登录' : '账号密码登录'}}
+    </button>
+    <button class="btn-wx" loading="{{wxLoading}}" bindtap="onWxLogin" wx:if="{{!bindMode}}">微信一键登录</button>
+    <button class="btn-ghost" bindtap="cancelBind" wx:if="{{bindMode}}">取消绑定</button>
+    <view class="muted tip">{{productNote}}</view>
+    <view class="muted tip">API: {{baseUrl}}</view>
+    <view class="muted tip">mock 下任意 wx.login code 可联调</view>
+  </view>
+</view>

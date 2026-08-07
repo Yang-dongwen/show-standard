@@ -1,0 +1,27 @@
+.tabs {
+  display: flex;
+  gap: 16rpx;
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx;
+  border-radius: 12rpx;
+  background: #f1f5f9;
+}
+.tab.on {
+  background: #5b5ce2;
+  color: #fff;
+}
+.sec {
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+.line {
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+.amt {
+  color: #5b5ce2;
+  font-weight: 600;
+}

@@ -7,14 +7,15 @@
 ![Spring%20Boot](https://img.shields.io/badge/Spring%20Boot-3.1.5-2f6f4f)
 ![Vue](https://img.shields.io/badge/Vue-3.4-2f6f4f)
 ![Element%20Plus](https://img.shields.io/badge/Element%20Plus-2.x-409eff)
-![SQLite](https://img.shields.io/badge/SQLite-3.46-2f6f4f)
+![SQLite](https://img.shields.io/badge/SQLite-local-2f6f4f)
+![MySQL](https://img.shields.io/badge/MySQL-cloud-4479a1)
 ![License](https://img.shields.io/badge/License-MIT-2f6f4f)
 
 ---
 
 ## 为什么是它
 
-- **零外部数据库**：内置 SQLite，数据落在本机 `~/.show/`，部署简单。
+- **客户二选一**：**本地买断**（SQLite 本机、无小程序）或 **SaaS 云版**（MySQL + 运营台 + 小程序）。
 - **安全闭环**：JWT 鉴权 + 租户隔离 + 审计日志，业务接口默认需登录。
 - **聚焦高频场景**：会员、充值、消费（校验码）、员工、服务、报表、审计。
 - **现代 Web UI**：Vue 3 + Element Plus，浅色侧栏中后台布局，适配浏览器使用。
@@ -63,16 +64,16 @@
 - 租户设置（如目标等，见 `/api/settings`）
 - 在岗员工/服务 options 接口
 
-更多开发说明见 [`docs/dev/README.md`](./docs/dev/README.md)。
+更多开发说明见 [`docs/开发与运行.md`](./docs/开发与运行.md)。
 
 ---
 
 ## 截图展示
 
+![登录页](./docs/截图/01-login.png)
 
-![登录页](./docs/screenshots/01-login.png)
+![经营总览](./docs/截图/02-dashboard.png)
 
-![02-dashboard.png](docs/screenshots/02-dashboard.png)
 ---
 
 ## 系统架构
@@ -82,7 +83,8 @@ flowchart LR
   Browser["浏览器"] --> SPA["Vue 3 + Element Plus SPA"]
   SPA --> API["Spring Boot :8080"]
   API --> JWT["JWT + TenantContext"]
-  JWT --> DB["SQLite ~/.show/show.db"]
+  JWT --> DBLocal["本地 SQLite ~/.show/show.db"]
+  JWT --> DBCloud["云 MySQL（profiles=cloud）"]
   API --> Audit["审计日志"]
   API --> Static["内嵌 static 资源"]
 ```
@@ -91,7 +93,7 @@ flowchart LR
 |------|------|------|
 | 前端 | Vue 3.4、Vue Router、Vite 5、Element Plus 2 | Hash 路由；构建产物输出到后端 `static` |
 | 后端 | Spring Boot 3.1.5、JDBC、JJWT | 默认端口 `8080` |
-| 数据库 | SQLite 3.46 | 单机文件，WAL + 单连接池 |
+| 数据库 | **本地 SQLite** / **云 MySQL** | 默认文件库；`cloud` profile 用 MySQL |
 
 ---
 
@@ -108,7 +110,7 @@ flowchart LR
 | `t_consume_record` | 消费记录 |
 | `t_audit_log` | 审计日志 |
 
-建表脚本：`src/main/resources/schema.sql`。
+建表 / 迁移：Flyway · `src/main/resources/db/migration/sqlite|mysql/`。
 
 密钥与配置：`~/.show/secrets.properties`（JWT 等，首次启动生成）。
 
@@ -152,7 +154,7 @@ mvn spring-boot:run
 或使用一键脚本：
 
 ```powershell
-.\compile_all.ps1
+.\scripts\compile_all.ps1
 java -jar target\ddmo-1.0.0.jar
 ```
 
@@ -176,13 +178,13 @@ npm run dev
 ## 一键构建
 
 ```powershell
-.\compile_all.ps1
+.\scripts\compile_all.ps1
 ```
 
 流程：
 
 1. `frontend`：`npm install` + `npm run build` → `src/main/resources/static`
-2. 根目录：`mvn clean package -DskipTests`
+2. 仓库根：`mvn clean package -DskipTests`
 3. 产物：`target\ddmo-1.0.0.jar`
 
 运行：
@@ -210,13 +212,15 @@ show-standard/
 │   └── security/             # JWT、租户
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── schema.sql
+│   ├── db/migration/sqlite|mysql/
 │   └── static/               # 前端构建输出
-├── docs/
-│   ├── screenshots/          # 界面截图（待更新）
-│   └── dev/README.md         # 开发与 API 说明
-└── compile_all.ps1
+├── docs/                     # 中文文档（见文末索引）
+│   └── 截图/
+└── scripts/                  # 构建 / 桌面打包脚本
+    ├── compile_all.ps1
+    └── package-desktop.bat
 ```
+
 
 ---
 
@@ -225,19 +229,58 @@ show-standard/
 | 配置 | 位置 | 说明 |
 |------|------|------|
 | 端口 | `server.port` | 默认 `8080` |
-| 注册策略 | `app.register.mode` | `first-only` / `open` / `invite` |
-| 邀请码 | `app.register.invite-code` / 环境变量 `SHOW_INVITE_CODE` | `invite` 模式使用 |
+| C 端注册 | `app.register.mode` | 示例 `first-only` |
+| C 端邀请码 | `app.register.invite-code` | 示例 `DEMO-CEND`（仅 invite 模式） |
+| SaaS 运营 | `app.saas.bootstrap-*` | 示例 `platform` / `platform123` |
+| SaaS 开店码 | `app.saas.invite-code` | 示例 `WELCOME` |
 | JWT | `~/.show/secrets.properties` | 运行时密钥，勿提交仓库 |
+
+现阶段配置写死在 `application.yml`，**不依赖环境变量**。
 
 ---
 
+## 双系统：C 端门店 + SaaS 运营（隔离）
+
+| | **C 端 Show** | **SaaS** |
+|--|---------------|----------|
+| 用途 | 门店会员收银 | 多租户开通、邀请码、停用、C 端数据只读汇总 |
+| 代码 | `com.ddmo.app` + `frontend/` | `com.ddmo.saas` + `frontend-saas/` |
+| API | `/api/**` | `/api/saas/**` |
+| 入口 | `http://host:8080/` | `http://host:8080/saas/` |
+| 数据库 | **同一库**；业务表仅 C 端写入，SaaS 可汇总/管控租户 |
+
+```powershell
+mvn spring-boot:run
+
+# 构建两套前端
+cd frontend ; npm run build ; cd ..
+cd frontend-saas ; npm install ; npm run build ; cd ..
+```
+
+SaaS 登录示例：`platform` / `platform123`。开发时 C 端 HMR `:3000`，SaaS HMR `:3001`。
+
+### 文档索引（`docs/`）
+
+| 文档 | 说明 |
+|------|------|
+| **[项目完整运行手册.md](./docs/项目完整运行手册.md)** | **客户端 / SaaS / 小程序完整安装与运行（推荐先读）** |
+| [开发与运行.md](./docs/开发与运行.md) | 本机开发、构建 |
+| [产品双轨说明.md](./docs/产品双轨说明.md) | 本地版 / 云版原则 |
+| [实现进度.md](./docs/实现进度.md) | 功能勾选总表 |
+| [项目风险与改进.md](./docs/项目风险与改进.md) | 风险清单与 P0 改进 |
+| [SaaS运营平台.md](./docs/SaaS运营平台.md) | 运营台隔离与分层 |
+| [商家小程序.md](./docs/商家小程序.md) | 商家微信小程序（工程：`miniprogram-biz/`） |
+| [云版Docker部署.md](./docs/云版Docker部署.md) | Docker Compose |
+| [桌面客户端打包.md](./docs/桌面客户端打包.md) | Windows 安装包 |
+
 ## 后续演进（可选）
 
-- 多角色（店长 / 店员）与菜单权限
+- 会员微信小程序（后置，见商家小程序文档）
+- ~~多角色（店长 / 店员）与菜单权限~~（已实现）
 - 会员标签、回访与沉睡唤醒
 - 次卡 / 套餐 / 积分
 - 交班对账、日结
-- 云端同步与连锁汇总
+- 在线订阅支付
 
 ---
 

@@ -20,7 +20,13 @@ import java.time.format.DateTimeFormatter;
  * headless=false、单实例、系统托盘退出、就绪后打开默认浏览器。
  * 正常 Web 启动不受影响。
  */
-@SpringBootApplication
+/**
+ * 扫描 C 端 {@code com.ddmo.app} 与 SaaS {@code com.ddmo.saas}。
+ * <p>
+ * 交付 SKU：desktop=本地买断（SQLite）；cloud=SaaS（MySQL）。
+ * 本地版运行时关闭 SaaS 入口（见 {@code SaasFeatureGateFilter}）。
+ */
+@SpringBootApplication(scanBasePackages = {"com.ddmo.app", "com.ddmo.saas"})
 public class DdmoApplication {
 
     public static void main(String[] args) {

@@ -26,11 +26,16 @@
         </template>
         <el-table-column prop="name" label="姓名" min-width="100" />
         <el-table-column prop="phone" label="手机号" min-width="130" />
-        <el-table-column label="校验码" width="110">
+        <el-table-column v-if="canViewVerify" label="校验码" width="110">
           <template #default="{ row }">
             <el-button link type="primary" @click="toggleVerify(row.id)">
-              {{ verifyVisible[row.id] ? row.verifyCode : '****' }}
+              {{ verifyVisible[row.id] ? row.verifyCode || '----' : '****' }}
             </el-button>
+          </template>
+        </el-table-column>
+        <el-table-column v-else label="校验码" width="100">
+          <template #default>
+            <span class="muted">保密</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
@@ -86,8 +91,15 @@
             @input="syncVerifyCodeByPhone"
           />
         </el-form-item>
-        <el-form-item label="校验码" prop="verifyCode">
-          <el-input v-model="form.verifyCode" class="field-xs" maxlength="4" placeholder="4位" />
+        <el-form-item v-if="canViewVerify || !form.id" label="校验码" prop="verifyCode">
+          <el-input
+            v-model="form.verifyCode"
+            class="field-xs"
+            maxlength="4"
+            :placeholder="form.id && !canViewVerify ? '无权限查看' : '4位'"
+            :disabled="!!form.id && !canViewVerify"
+          />
+          <div class="field-tip">校验码用于到店消费核对，不等于支付密码；非店长默认不可查看明文。</div>
         </el-form-item>
         <el-form-item v-if="!form.id" label="初次充值">
           <el-input-number
@@ -112,7 +124,7 @@
 </template>
 
 <script setup>
-import { inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Download } from '@element-plus/icons-vue'
 import {
@@ -124,8 +136,12 @@ import {
 import { downloadWithAuth } from '@/utils/download.js'
 import { last4 } from '@/utils/format.js'
 import { debounce } from '@/utils/debounce.js'
+import { hasPermission } from '@/utils/permissions.js'
 import MoneyText from '@/components/common/MoneyText.vue'
 import EmptyHint from '@/components/common/EmptyHint.vue'
+
+/** 仅店长默认可看明文校验码（与后端 customers:verify 对齐） */
+const canViewVerify = computed(() => hasPermission('customers:verify'))
 
 const loading = ref(false)
 const saving = ref(false)
@@ -300,3 +316,16 @@ onUnmounted(() => {
   if (unregister) unregister()
 })
 </script>
+
+<style scoped>
+.field-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+.muted {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+</style>

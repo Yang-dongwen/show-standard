@@ -1,0 +1,23 @@
+<view class="card">
+  <view class="field">
+    <view class="field-label">姓名</view>
+    <input value="{{name}}" data-k="name" bindinput="onField" />
+  </view>
+  <view class="field">
+    <view class="field-label">手机号</view>
+    <input value="{{phone}}" data-k="phone" bindinput="onField" />
+  </view>
+  <view class="field">
+    <view class="field-label">校验码</view>
+    <input value="{{verifyCode}}" data-k="verifyCode" placeholder="默认手机后四位" bindinput="onField" />
+  </view>
+  <view class="field" wx:if="{{!id}}">
+    <view class="field-label">初次充值</view>
+    <input type="digit" value="{{initialRechargeAmount}}" data-k="initialRechargeAmount" bindinput="onField" />
+  </view>
+  <view class="field">
+    <view class="field-label">备注</view>
+    <input value="{{remark}}" data-k="remark" bindinput="onField" />
+  </view>
+  <button class="btn-primary" loading="{{saving}}" bindtap="save">保存</button>
+</view>

@@ -1,0 +1,68 @@
+# Show 云版本地/测试编排（本阶段数据库：MySQL）
+# 使用：见 docs/云版Docker部署.md
+#
+# 1) 构建前端（可选，推荐）
+#    cd frontend && npm run build
+#    cd frontend-saas && npm run build
+# 2) docker compose up -d --build
+# 3) 浏览器 http://localhost:8080  C 端
+#            http://localhost:8080/saas/  运营台
+# 4) 小程序 baseUrl 指向 http://宿主机IP:8080 或反向代理域名
+#
+# 仅本地 C 端（SQLite）无需 Docker：
+#    mvn spring-boot:run
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: show-db
+    environment:
+      MYSQL_DATABASE: show
+      MYSQL_USER: show
+      MYSQL_PASSWORD: show
+      MYSQL_ROOT_PASSWORD: showroot
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - show_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pshowroot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: show-app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: cloud
+      # 覆盖 application-cloud.yml 中的数据源（Spring Boot 宽松绑定）
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/show?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: show
+      SPRING_DATASOURCE_PASSWORD: show
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+    volumes:
+      - show_app_data:/root/.show
+
+  # 可选：前置 Nginx（生产再挂证书）
+  # nginx:
+  #   image: nginx:1.27-alpine
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  #   depends_on:
+  #     - app
+
+volumes:
+  show_mysql_data:
+  show_app_data:

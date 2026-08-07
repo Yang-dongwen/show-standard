@@ -5,7 +5,7 @@
         <div class="brand-mark">S</div>
         <div v-show="!sidebarCollapsed" class="brand-text">
           <div class="brand-name">Show</div>
-          <div class="brand-sub">门店会员</div>
+          <div class="brand-sub">{{ shopTitle }}</div>
         </div>
       </div>
 
@@ -34,7 +34,7 @@
           <el-avatar :size="32" :src="avatarUrl" />
           <div class="user-mini-info">
             <div class="user-mini-name">{{ displayName }}</div>
-            <div class="user-mini-role">店长</div>
+            <div class="user-mini-role">{{ currentRoleLabel }}</div>
           </div>
         </div>
         <button
@@ -167,25 +167,41 @@ import {
   TrendCharts,
   Document,
   Setting,
-  QuestionFilled
+  QuestionFilled,
+  UserFilled
 } from '@element-plus/icons-vue'
 import { changePassword } from '@/api/auth.js'
 import { formatChineseDate } from '@/utils/format.js'
+import { hasPermission, roleLabel } from '@/utils/permissions.js'
 import avatarUrl from '@/assets/avatar.png'
 
 const router = useRouter()
 const route = useRoute()
 
-const navItems = [
-  { path: '/app/dashboard', label: '经营总览', icon: DataBoard, subtitle: '今日经营概况与快捷入口' },
-  { path: '/app/customers', label: '会员管理', icon: User, subtitle: '会员档案、余额与校验码' },
-  { path: '/app/transactions', label: '充值消费', icon: Wallet, subtitle: '收银入账、扣款与流水' },
-  { path: '/app/employees', label: '员工管理', icon: Avatar, subtitle: '在岗员工与状态维护' },
-  { path: '/app/reports', label: '报表分析', icon: TrendCharts, subtitle: '区间汇总与员工业绩' },
-  { path: '/app/audit', label: '审计日志', icon: Document, subtitle: '关键操作可追溯记录' },
-  { path: '/app/settings', label: '服务项目', icon: Setting, subtitle: '服务类型与默认价格' },
+const allNavItems = [
+  { path: '/app/dashboard', label: '经营总览', icon: DataBoard, subtitle: '今日经营概况与快捷入口', permission: 'dashboard' },
+  { path: '/app/customers', label: '会员管理', icon: User, subtitle: '会员档案、余额与校验码', permission: 'customers' },
+  { path: '/app/transactions', label: '充值消费', icon: Wallet, subtitle: '收银入账、扣款与流水', permission: 'transactions' },
+  { path: '/app/employees', label: '员工管理', icon: Avatar, subtitle: '在岗员工与状态维护', permission: 'employees' },
+  { path: '/app/staff', label: '登录账号', icon: UserFilled, subtitle: '店员/收银登录账号与角色', permission: 'staff_accounts' },
+  { path: '/app/reports', label: '报表分析', icon: TrendCharts, subtitle: '区间汇总与员工业绩', permission: 'reports' },
+  { path: '/app/audit', label: '审计日志', icon: Document, subtitle: '关键操作可追溯记录', permission: 'audit' },
+  { path: '/app/settings', label: '门店设置', icon: Setting, subtitle: '门店资料、服务与默认价格', permission: 'settings' },
   { path: '/app/help', label: '使用帮助', icon: QuestionFilled, subtitle: '使用说明与访问地址' }
 ]
+
+const navItems = computed(() =>
+  allNavItems.filter((item) => !item.permission || hasPermission(item.permission, user.value))
+)
+
+const shopTitle = computed(() => {
+  try {
+    const u = JSON.parse(sessionStorage.getItem('user') || '{}')
+    return u.shopName || '门店会员'
+  } catch {
+    return '门店会员'
+  }
+})
 
 const sidebarCollapsed = ref(false)
 const refreshing = ref(false)
@@ -230,9 +246,10 @@ const user = computed(() => {
   }
 })
 const displayName = computed(() => user.value.nickname || user.value.username || '店长')
+const currentRoleLabel = computed(() => roleLabel(user.value.role || 'owner'))
 const activeMenu = computed(() => route.path)
 const currentNav = computed(
-  () => navItems.find((n) => n.path === route.path) || navItems[0]
+  () => navItems.value.find((n) => n.path === route.path) || navItems.value[0] || allNavItems[0]
 )
 const pageTitle = computed(() => route.meta.title || currentNav.value.label || '经营总览')
 const pageIcon = computed(() => currentNav.value.icon || DataBoard)

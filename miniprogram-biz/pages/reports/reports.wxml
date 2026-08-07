@@ -1,0 +1,14 @@
+<view class="card">
+  <view class="muted">区间 {{startDate}} ~ {{endDate}}</view>
+  <view class="kpi">充值 ¥{{summary.total_recharge || 0}}</view>
+  <view class="kpi">消费 ¥{{summary.total_consume || 0}}</view>
+  <view class="kpi">新会员 {{summary.new_customers || 0}}</view>
+</view>
+<view class="card">
+  <view class="sec">员工业绩</view>
+  <view class="row" wx:for="{{performance}}" wx:key="employeeId">
+    <view>{{item.employeeName}}</view>
+    <view>¥{{item.total_amount}} / {{item.total_count}}单</view>
+  </view>
+  <view wx:if="{{!performance.length}}" class="empty">暂无数据</view>
+</view>

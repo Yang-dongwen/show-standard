@@ -1,5 +1,26 @@
 <template>
   <div v-loading="loading" class="page-view">
+    <el-alert
+      v-if="summary.shopName"
+      class="shop-banner"
+      type="info"
+      :closable="false"
+      show-icon
+      :title="`${summary.shopName} · 门店码 ${summary.tenantKey || '-'}`"
+      :description="`套餐 ${summary.planCode || 'free'} · 会员配额 ${summary.customerQuota || '-'} · 员工配额 ${summary.employeeQuota || '-'}`"
+    />
+
+    <el-alert
+      v-for="a in announcements"
+      :key="a.id"
+      class="ann-banner"
+      type="warning"
+      :closable="false"
+      show-icon
+      :title="a.title"
+      :description="a.content"
+    />
+
     <div class="stat-grid">
       <StatCard label="活跃会员" :value="summary.activeCustomers || 0" :icon="User" tone="indigo" />
       <StatCard label="账户总余额" :value="money(summary.totalBalance)" :icon="Wallet" tone="green" />
@@ -74,12 +95,14 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { User, Wallet, TrendCharts, ShoppingCart, UserFilled, Avatar } from '@element-plus/icons-vue'
 import StatCard from '@/components/common/StatCard.vue'
 import { fetchDashboardSummary } from '@/api/report.js'
+import { fetchAnnouncements } from '@/api/announcement.js'
 import { money } from '@/utils/format.js'
 
 const TARGET_KEY = 'show.dailyTarget'
 
 const loading = ref(false)
 const summary = reactive({})
+const announcements = ref([])
 const dailyTarget = ref(Number(localStorage.getItem(TARGET_KEY)) || 3000)
 const luckyMessage = ref('今日宜稳扎稳打，客单自然上涨。')
 const luckyAnimating = ref(false)
@@ -123,6 +146,11 @@ async function load() {
   loading.value = true
   try {
     Object.assign(summary, await fetchDashboardSummary())
+    try {
+      announcements.value = (await fetchAnnouncements()) || []
+    } catch {
+      announcements.value = []
+    }
   } finally {
     loading.value = false
   }
@@ -149,6 +177,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.shop-banner {
+  margin-bottom: 14px;
+}
+.ann-banner {
+  margin-bottom: 10px;
+}
 .overview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
