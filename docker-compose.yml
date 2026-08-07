@@ -1,5 +1,5 @@
 # Show 云版本地/测试编排（本阶段数据库：MySQL）
-# 使用：见 docs/云版Docker部署.md
+# 使用：见 docs/运行/SaaS云版.md
 #
 # 1) 构建前端（可选，推荐）
 #    cd frontend && npm run build

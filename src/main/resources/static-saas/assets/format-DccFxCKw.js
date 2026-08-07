@@ -1,0 +1,1 @@
+function i(n){const r=Number(n||0);return Number.isNaN(r)?"0.00":r.toLocaleString("zh-CN",{minimumFractionDigits:2,maximumFractionDigits:2})}function t(n){return{free:"免费版",plus:"Plus",pro:"Pro"}[n]||n||"—"}export{i as m,t as p};

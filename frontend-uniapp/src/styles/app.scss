@@ -1,0 +1,165 @@
+/* 全局业务样式 */
+page {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.page {
+  min-height: 100vh;
+  background: #f1f5f9;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.06);
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 20rpx;
+}
+
+.btn-primary {
+  background: #5b5ce2;
+  color: #ffffff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  line-height: 1.4;
+  padding: 22rpx 32rpx;
+  border: none;
+  text-align: center;
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.btn-primary[disabled] {
+  opacity: 0.55;
+}
+
+.btn-ghost {
+  background: #ffffff;
+  color: #5b5ce2;
+  border: 2rpx solid #5b5ce2;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  padding: 20rpx 28rpx;
+  text-align: center;
+}
+
+.btn-ghost::after {
+  border: none;
+}
+
+.field {
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.field-label {
+  font-size: 24rpx;
+  color: #64748b;
+  margin-bottom: 10rpx;
+}
+
+.empty {
+  padding: 80rpx 40rpx;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 28rpx;
+}
+
+.placeholder-badge {
+  display: inline-block;
+  background: rgba(91, 92, 226, 0.12);
+  color: #5b5ce2;
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  margin-top: 12rpx;
+}
+
+.stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -10rpx;
+}
+
+.stat-item {
+  width: 50%;
+  box-sizing: border-box;
+  padding: 10rpx;
+}
+
+.stat-card {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx 24rpx;
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.06);
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #64748b;
+  margin-bottom: 12rpx;
+}
+
+.stat-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.stat-value.primary {
+  color: #5b5ce2;
+}
+
+.list-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.list-cell:last-child {
+  border-bottom: none;
+}
+
+.list-cell-title {
+  font-size: 30rpx;
+  color: #0f172a;
+}
+
+.list-cell-desc {
+  font-size: 24rpx;
+  color: #94a3b8;
+  margin-top: 6rpx;
+}
+
+.list-cell-arrow {
+  color: #cbd5e1;
+  font-size: 28rpx;
+}
+
+.section-tip {
+  font-size: 24rpx;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-top: 8rpx;
+}

@@ -1,0 +1,105 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "首页",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/customers/customers",
+      "style": {
+        "navigationBarTitleText": "会员"
+      }
+    },
+    {
+      "path": "pages/customer-edit/customer-edit",
+      "style": {
+        "navigationBarTitleText": "会员编辑"
+      }
+    },
+    {
+      "path": "pages/transactions/transactions",
+      "style": {
+        "navigationBarTitleText": "收银"
+      }
+    },
+    {
+      "path": "pages/employees/employees",
+      "style": {
+        "navigationBarTitleText": "员工"
+      }
+    },
+    {
+      "path": "pages/services/services",
+      "style": {
+        "navigationBarTitleText": "服务项目"
+      }
+    },
+    {
+      "path": "pages/reports/reports",
+      "style": {
+        "navigationBarTitleText": "报表"
+      }
+    },
+    {
+      "path": "pages/shop/shop",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Show 门店",
+    "navigationBarBackgroundColor": "#0f172a",
+    "backgroundColor": "#f1f5f9",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#5b5ce2",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "static/tab/home.png",
+        "selectedIconPath": "static/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/customers/customers",
+        "text": "会员",
+        "iconPath": "static/tab/customers.png",
+        "selectedIconPath": "static/tab/customers-active.png"
+      },
+      {
+        "pagePath": "pages/transactions/transactions",
+        "text": "收银",
+        "iconPath": "static/tab/transactions.png",
+        "selectedIconPath": "static/tab/transactions-active.png"
+      },
+      {
+        "pagePath": "pages/shop/shop",
+        "text": "我的",
+        "iconPath": "static/tab/shop.png",
+        "selectedIconPath": "static/tab/shop-active.png"
+      }
+    ]
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^App(.*)": "@/components/App$1.vue"
+    }
+  }
+}

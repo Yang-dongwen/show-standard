@@ -59,3 +59,7 @@ temp/
 $RECYCLE.BIN/
 *.swp
 *~
+
+# Grok agent local state
+.grok/
+
