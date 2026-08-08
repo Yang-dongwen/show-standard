@@ -4,6 +4,7 @@ import com.ddmo.app.dto.ApiResponse;
 import com.ddmo.app.dto.StaffAccountRequest;
 import com.ddmo.app.dto.StaffResetPasswordRequest;
 import com.ddmo.app.service.StaffAccountService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,14 +38,14 @@ public class StaffAccountController {
     }
 
     @PostMapping
-    public ApiResponse<Map<String, Object>> create(@RequestBody StaffAccountRequest request) {
+    public ApiResponse<Map<String, Object>> create(@Valid @RequestBody StaffAccountRequest request) {
         return ApiResponse.ok("账号已创建", staffAccountService.create(request));
     }
 
     @PutMapping("/{id}")
     public ApiResponse<Map<String, Object>> update(
         @PathVariable String id,
-        @RequestBody StaffAccountRequest request
+        @Valid @RequestBody StaffAccountRequest request
     ) {
         return ApiResponse.ok("已更新", staffAccountService.update(parseId(id), request));
     }

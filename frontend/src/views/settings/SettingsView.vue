@@ -170,9 +170,10 @@ async function saveShop() {
     shop.value = await updateShop({ shopName: shopForm.shopName.trim() })
     ElMessage.success('门店资料已保存')
     try {
-      const user = JSON.parse(sessionStorage.getItem('user') || '{}')
+      const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}')
       user.shopName = shop.value.shopName
-      sessionStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('user', JSON.stringify(user))
+      sessionStorage.removeItem('user')
     } catch {
       /* ignore */
     }

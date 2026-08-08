@@ -6,6 +6,7 @@ spring:
     name: ddmo
   # 日常开发默认 cloud → application-cloud.yml（你的 MySQL）
   # 验证本地买断包：--spring.profiles.active=desktop
+  # 生产 EC2：--spring.profiles.active=ec2 + deploy/env/app.env（见 application-ec2.yml）
   profiles:
     active: cloud
   main:
@@ -30,6 +31,7 @@ app:
   # ========== 客户交付两套 SKU ==========
   # desktop = 本地买断（SQLite）· 见 application-desktop.yml / 安装向导 local
   # cloud   = SaaS（MySQL）· 见 application-cloud.yml · 日常开发默认
+  # ec2     = AWS 生产（MySQL/RDS，密钥来自 deploy/env/app.env）· 见 application-ec2.yml
   # 默认 deployment 会被 active profile 覆盖
   deployment: cloud
   security:

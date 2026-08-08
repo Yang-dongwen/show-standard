@@ -68,7 +68,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const token = sessionStorage.getItem('saasToken')
+  const token = localStorage.getItem('saasToken') || sessionStorage.getItem('saasToken')
   const needAuth = to.matched.some((r) => r.meta.requiresAuth)
   if (needAuth && !token) {
     next('/login')

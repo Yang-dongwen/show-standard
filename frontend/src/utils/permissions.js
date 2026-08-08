@@ -9,7 +9,7 @@ export const ROLE_LABELS = {
 
 export function getSessionUser() {
   try {
-    return JSON.parse(sessionStorage.getItem('user') || '{}')
+    return JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}')
   } catch {
     return {}
   }

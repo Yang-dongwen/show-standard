@@ -196,7 +196,7 @@ const navItems = computed(() =>
 
 const shopTitle = computed(() => {
   try {
-    const u = JSON.parse(sessionStorage.getItem('user') || '{}')
+    const u = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}')
     return u.shopName || '门店会员'
   } catch {
     return '门店会员'
@@ -240,7 +240,7 @@ provide('registerRefresh', (fn) => {
 
 const user = computed(() => {
   try {
-    return JSON.parse(sessionStorage.getItem('user') || '{}')
+    return JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}')
   } catch {
     return {}
   }
@@ -318,6 +318,8 @@ async function handleLogout() {
 }
 
 function doLogout(showMsg) {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
   sessionStorage.removeItem('token')
   sessionStorage.removeItem('user')
   if (showMsg) ElMessage.success('已退出登录')

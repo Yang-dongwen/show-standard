@@ -43,7 +43,11 @@
           </el-form-item>
           <div class="row2">
             <el-form-item label="店长用户名" prop="username">
-              <el-input v-model="form.username" autocomplete="username" />
+              <el-input
+                v-model="form.username"
+                autocomplete="username"
+                placeholder="字母开头，仅字母/数字/下划线"
+              />
             </el-form-item>
             <el-form-item label="昵称" prop="nickname">
               <el-input v-model="form.nickname" maxlength="6" show-word-limit />
@@ -102,7 +106,11 @@ const rules = {
   shopName: [{ max: 64, message: '门店名称最多64字', trigger: 'blur' }],
   username: [
     { required: true, message: '请输入店长用户名', trigger: 'blur' },
-    { max: 32, message: '用户名过长', trigger: 'blur' }
+    {
+      pattern: /^[a-zA-Z][a-zA-Z0-9_]{2,31}$/,
+      message: '3–32位，字母开头，仅字母/数字/下划线（不可中文或特殊符号）',
+      trigger: ['blur', 'change']
+    }
   ],
   nickname: [
     { required: true, message: '请输入昵称', trigger: 'blur' },
@@ -115,6 +123,7 @@ const rules = {
 }
 
 async function onSubmit() {
+  if (loading.value) return
   try {
     await formRef.value?.validate()
   } catch {
@@ -124,6 +133,7 @@ async function onSubmit() {
   result.value = null
   try {
     result.value = await registerShop({ ...form })
+    // 页面已有成功态 UI，避免与「开店成功」区块重复刷 Toast 感
     ElMessage.success('开店成功')
   } catch (e) {
     ElMessage.error(e.message || '开店失败')

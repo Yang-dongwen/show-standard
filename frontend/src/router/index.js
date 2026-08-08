@@ -106,12 +106,18 @@ async function resolveNeedsSetup() {
   }
   try {
     const st = await fetchInstallStatus()
+    // 云端 SaaS 进程：后端 cloudServer=true / needsSetup=false，永不进安装向导
+    if (st && (st.cloudServer || (st.completed && !st.needsSetup))) {
+      sessionStorage.setItem('install.done', '1')
+      if (st.edition) {
+        sessionStorage.setItem('install.edition', st.edition)
+      }
+      installCache = false
+      installCacheAt = now
+      return false
+    }
     installCache = !!(st && st.needsSetup)
     installCacheAt = now
-    if (st && st.completed && !st.needsSetup) {
-      sessionStorage.setItem('install.done', '1')
-      installCache = false
-    }
     return installCache
   } catch {
     // 后端未就绪时不拦，避免白屏
@@ -139,7 +145,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  const token = sessionStorage.getItem('token')
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   if (to.meta.requiresAuth || to.matched.some((r) => r.meta.requiresAuth)) {
     if (!token) {
       next('/login')

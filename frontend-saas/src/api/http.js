@@ -1,5 +1,5 @@
 async function saasRequest(path, options = {}) {
-  const token = sessionStorage.getItem('saasToken')
+  const token = localStorage.getItem('saasToken') || sessionStorage.getItem('saasToken')
   let res
   try {
     res = await fetch(path, {
@@ -21,6 +21,8 @@ async function saasRequest(path, options = {}) {
   }
   if (!res.ok || data.success === false) {
     if (res.status === 401) {
+      localStorage.removeItem('saasToken')
+      localStorage.removeItem('saasUser')
       sessionStorage.removeItem('saasToken')
       sessionStorage.removeItem('saasUser')
       if (!window.location.hash.includes('/login')) {

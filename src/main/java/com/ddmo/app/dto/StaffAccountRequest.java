@@ -1,7 +1,15 @@
 package com.ddmo.app.dto;
 
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 public class StaffAccountRequest {
 
+    @Size(min = 3, max = 32, message = "用户名长度须为3-32位")
+    @Pattern(
+        regexp = "^[a-zA-Z][a-zA-Z0-9_]{2,31}$",
+        message = "用户名须字母开头，仅含字母/数字/下划线，不可中文或特殊符号"
+    )
     private String username;
     private String password;
     private String nickname;

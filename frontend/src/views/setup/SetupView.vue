@@ -5,7 +5,7 @@
         <div class="logo-mark">S</div>
         <div>
           <h1>Show 安装向导</h1>
-          <p>请选择产品安装方式。选定后写入本机配置，一般仅首次需要。</p>
+          <p>仅 MSI 本地客户端首次安装需要。云端 SaaS 服务不会出现本页。</p>
         </div>
       </header>
 
@@ -245,13 +245,15 @@ onMounted(async () => {
   loading.value = true
   try {
     const st = await fetchInstallStatus()
-    if (st && st.completed && !st.needsSetup) {
+    // 云端 SaaS / 已完成安装：直接进登录，不展示本地/SaaS 选型
+    if (st && (st.cloudServer || (st.completed && !st.needsSetup))) {
       sessionStorage.setItem('install.done', '1')
+      if (st.edition) sessionStorage.setItem('install.edition', st.edition)
       router.replace('/login')
       return
     }
   } catch {
-    // 首次无后端时仍展示向导
+    // 首次无后端时仍展示向导（仅 MSI 桌面场景）
   } finally {
     loading.value = false
   }

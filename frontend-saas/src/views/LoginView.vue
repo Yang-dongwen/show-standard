@@ -65,7 +65,6 @@
                 placeholder="密码"
                 autocomplete="current-password"
                 :prefix-icon="Lock"
-                @keyup.enter="onSubmit"
               />
             </el-form-item>
             <el-button
@@ -114,6 +113,7 @@ const rules = {
 }
 
 async function onSubmit() {
+  if (loading.value) return
   try {
     await formRef.value?.validate()
   } catch {
@@ -122,8 +122,11 @@ async function onSubmit() {
   loading.value = true
   try {
     const data = await saasLogin(form)
-    sessionStorage.setItem('saasToken', data.token)
-    sessionStorage.setItem('saasUser', JSON.stringify(data.user || {}))
+    // localStorage：多标签页共享登录态
+    localStorage.setItem('saasToken', data.token)
+    localStorage.setItem('saasUser', JSON.stringify(data.user || {}))
+    sessionStorage.removeItem('saasToken')
+    sessionStorage.removeItem('saasUser')
     ElMessage.success('登录成功')
     router.push('/home/dashboard')
   } catch (e) {

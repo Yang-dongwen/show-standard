@@ -47,7 +47,6 @@
               placeholder="密码"
               :prefix-icon="Lock"
               autocomplete="current-password"
-              @keyup.enter="handleLogin"
             />
           </el-form-item>
           <el-form-item class="options-row">
@@ -85,7 +84,11 @@
         label-width="80px"
       >
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="registerForm.username" class="field-md" placeholder="用户名" />
+          <el-input
+            v-model="registerForm.username"
+            class="field-md"
+            placeholder="字母开头，仅字母/数字/下划线"
+          />
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input v-model="registerForm.password" class="field-md" type="password" show-password placeholder="至少6位" />
@@ -142,7 +145,14 @@ const loginRules = {
 }
 
 const registerRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    {
+      pattern: /^[a-zA-Z][a-zA-Z0-9_]{2,31}$/,
+      message: '3–32位，字母开头，仅字母/数字/下划线（不可中文或特殊符号）',
+      trigger: ['blur', 'change']
+    }
+  ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
@@ -179,11 +189,15 @@ function persistSession(data) {
   if (!token || token.split('.').length !== 3) {
     throw new Error('登录返回的 token 非法')
   }
-  sessionStorage.setItem('token', token)
-  sessionStorage.setItem('user', JSON.stringify(user || {}))
+  // localStorage：多标签页共享登录态（sessionStorage 每开新标签都要重登）
+  localStorage.setItem('token', token)
+  localStorage.setItem('user', JSON.stringify(user || {}))
+  sessionStorage.removeItem('token')
+  sessionStorage.removeItem('user')
 }
 
 async function handleLogin() {
+  if (loading.value) return
   const form = loginFormRef.value
   if (!form) return
   try {

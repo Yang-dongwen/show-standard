@@ -135,7 +135,7 @@ const pageTitle = computed(() => route.meta?.title || '驾驶舱')
 
 const displayName = computed(() => {
   try {
-    const u = JSON.parse(sessionStorage.getItem('saasUser') || '{}')
+    const u = JSON.parse(localStorage.getItem('saasUser') || sessionStorage.getItem('saasUser') || '{}')
     return u.nickname || u.username || '运营'
   } catch {
     return '运营'
@@ -153,6 +153,8 @@ function isActive(path) {
 
 function onCmd(cmd) {
   if (cmd === 'logout') {
+    localStorage.removeItem('saasToken')
+    localStorage.removeItem('saasUser')
     sessionStorage.removeItem('saasToken')
     sessionStorage.removeItem('saasUser')
     router.push('/login')

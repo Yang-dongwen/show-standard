@@ -36,10 +36,15 @@ public class InstallService {
 
     public Map<String, Object> status() {
         ensureShowDir();
+        // 云端 / EC2 进程：永远是 SaaS，无「本地买断」选型（MSI 桌面包才走向导）
+        maybeAutoCompleteCloudServer();
         maybeAutoCompleteLegacyLocal();
 
-        boolean completed = isCompleted();
-        String edition = readProp("install.edition", completed ? inferRunningEdition() : "");
+        boolean cloudServer = isCloudServerProcess();
+        boolean completed = isCompleted() || cloudServer;
+        String edition = cloudServer
+            ? "saas"
+            : readProp("install.edition", completed ? inferRunningEdition() : "");
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("needsSetup", !completed);
         m.put("completed", completed);
@@ -48,7 +53,9 @@ public class InstallService {
         m.put("installFile", InstallPaths.installFile().toAbsolutePath().toString());
         m.put("runningDeployment", environment.getProperty("app.deployment", "desktop"));
         m.put("runningDb", detectDbLabel(environment.getProperty("spring.datasource.url", "")));
-        m.put("skus", skus());
+        // 云端不暴露 local SKU，避免前端误导
+        m.put("skus", cloudServer ? skusCloudOnly() : skus());
+        m.put("cloudServer", cloudServer);
         m.put("restartRequired", false);
         return m;
     }
@@ -81,6 +88,9 @@ public class InstallService {
     }
 
     public Map<String, Object> complete(InstallCompleteRequest req) {
+        if (isCloudServerProcess()) {
+            throw new IllegalArgumentException("当前为云端 SaaS 服务，无需安装向导（本地买断请使用 MSI 客户端）");
+        }
         if (isCompleted()) {
             throw new IllegalArgumentException("安装已完成，如需重装请删除 " + InstallPaths.installFile());
         }
@@ -148,13 +158,71 @@ public class InstallService {
     }
 
     public void assertSetupDone() {
+        maybeAutoCompleteCloudServer();
         maybeAutoCompleteLegacyLocal();
+        if (isCloudServerProcess()) {
+            return;
+        }
         if (!isCompleted()) {
             throw new IllegalArgumentException("请先完成安装向导，选择「本地买断」或「SaaS 云版」");
         }
     }
 
+    /**
+     * 云端/EC2（profile=ec2 或 app.deployment=cloud）：安装向导无意义。
+     * 本地买断仅 MSI 桌面包（desktop profile）使用。
+     */
+    private boolean isCloudServerProcess() {
+        String deployment = environment.getProperty("app.deployment", "");
+        if ("cloud".equalsIgnoreCase(deployment)) {
+            return true;
+        }
+        String[] profiles = environment.getActiveProfiles();
+        for (String p : profiles) {
+            if ("ec2".equalsIgnoreCase(p) || "cloud".equalsIgnoreCase(p)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 云端进程：强制/纠正 install.properties 为 SaaS，禁止残留 local 误选。 */
+    private void maybeAutoCompleteCloudServer() {
+        if (!isCloudServerProcess()) {
+            return;
+        }
+        // 开发调试：-Dinstall.forceWizard=true 仍可强制看向导（仅本机）
+        if ("true".equalsIgnoreCase(System.getProperty("install.forceWizard", ""))) {
+            return;
+        }
+        ensureShowDir();
+        Properties existing = loadProps();
+        boolean needWrite = existing == null
+            || !"true".equalsIgnoreCase(existing.getProperty("install.completed", ""))
+            || !"saas".equalsIgnoreCase(existing.getProperty("install.edition", ""));
+        if (!needWrite) {
+            return;
+        }
+        Properties p = new Properties();
+        p.setProperty("install.completed", "true");
+        p.setProperty("install.completedAt", Instant.now().toString());
+        p.setProperty("install.edition", "saas");
+        p.setProperty("app.deployment", "cloud");
+        p.setProperty("install.cloudServerAuto", "true");
+        p.setProperty("install.note", "Cloud/EC2 process — MSI desktop install wizard not used");
+        try (OutputStream out = Files.newOutputStream(InstallPaths.installFile())) {
+            p.store(out, "Show cloud server auto install (SaaS only)");
+        } catch (IOException e) {
+            log.warn("cloud auto-install write failed: {}", e.getMessage());
+            return;
+        }
+        log.info("云端进程已自动标记为 SaaS（跳过安装向导）file={}", InstallPaths.installFile());
+    }
+
     private void maybeAutoCompleteLegacyLocal() {
+        if (isCloudServerProcess()) {
+            return;
+        }
         if (isCompleted()) {
             return;
         }
@@ -248,16 +316,24 @@ public class InstallService {
         local.put("includes", java.util.List.of("门店收银会员", "本机 SQLite", "离线可用", "文件备份"));
         local.put("excludes", java.util.List.of("云端 MySQL", "SaaS 运营台", "微信小程序"));
 
+        return java.util.List.of(local, skuSaas());
+    }
+
+    /** 仅云端进程返回的 SKU 列表（无本地买断）。 */
+    private static java.util.List<Map<String, Object>> skusCloudOnly() {
+        return java.util.List.of(skuSaas());
+    }
+
+    private static Map<String, Object> skuSaas() {
         Map<String, Object> saas = new LinkedHashMap<>();
         saas.put("id", "saas");
         saas.put("name", "SaaS 云版");
         saas.put("licenseModel", "subscription");
         saas.put("db", "mysql");
-        saas.put("summary", "连接云端/本机 MySQL，订阅制，支持运营台与小程序");
+        saas.put("summary", "连接云端 MySQL，订阅制，支持运营台与小程序");
         saas.put("includes", java.util.List.of("云端 MySQL", "SaaS 运营台", "邀请开店", "商家小程序"));
-        saas.put("excludes", java.util.List.of("纯离线单机买断体验（请选本地版）"));
-
-        return java.util.List.of(local, saas);
+        saas.put("excludes", java.util.List.of("纯离线单机买断（请使用 MSI 客户端）"));
+        return saas;
     }
 
     private static void ensureShowDir() {

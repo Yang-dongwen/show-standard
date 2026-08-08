@@ -145,7 +145,14 @@ const form = reactive({
 })
 
 const rules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    {
+      pattern: /^[a-zA-Z][a-zA-Z0-9_]{2,31}$/,
+      message: '3–32位，字母开头，仅字母/数字/下划线（不可中文或特殊符号）',
+      trigger: ['blur', 'change']
+    }
+  ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '至少6位', trigger: 'blur' }

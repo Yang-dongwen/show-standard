@@ -1,0 +1,58 @@
+# show-standard production lite stack (EC2 + external RDS MySQL).
+#
+# - NO MySQL service: SPRING_DATASOURCE_* points at AWS RDS (from app.env).
+# - Service name MUST be "app" (server-deploy injects absolute env_file override on app).
+# - Secrets: docker compose --env-file deploy/env/app.env (never commit real app.env).
+# - Public entry: http://HOST:${APP_HOST_PORT:-8090}/  and  /saas/
+# - Durable secrets/backups: host /data/show-standard/data → /root/.show
+#   Multi-instance: share this volume OR set the same APP_JWT_SECRET / APP_JWT_TENANT_AES_KEY.
+
+name: show-standard-lite
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/stack/Dockerfile.app
+    restart: unless-stopped
+    # Relative to this compose file → deploy/env/app.env.
+    # server-deploy/up.sh override with absolute env_file path (service name must stay "app").
+    # docker compose --env-file alone only substitutes ${VAR} in this YAML; it does NOT inject
+    # secrets into the container without env_file / environment on the service.
+    env_file:
+      - ../env/app.env
+    environment:
+      SPRING_PROFILES_ACTIVE: ec2
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
+    volumes:
+      # Persist SecretsInitializer secrets.properties + app.backup.dir
+      - /data/show-standard/data:/root/.show
+    networks:
+      - appnet
+    expose:
+      - "8080"
+    # No host ports: nginx fronts for reverse-proxy headers
+    deploy:
+      resources:
+        limits:
+          memory: 900M
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${APP_HOST_PORT:-8090}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - appnet
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+networks:
+  appnet:
+    driver: bridge

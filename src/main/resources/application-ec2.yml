@@ -1,0 +1,67 @@
+# ========== SKU：AWS EC2 / Docker 生产（profile=ec2）==========
+# 本文件可提交 Git：仅 ${ENV} 占位与生产默认，不含真实密码。
+# 真实密钥与 RDS 连接只来自服务器上的 deploy/env/app.env
+#   （docker compose --env-file / server-deploy 注入；切勿写入仓库或 CI Secrets）。
+# 激活：SPRING_PROFILES_ACTIVE=ec2 或 --spring.profiles.active=ec2
+# app.deployment=cloud → SaaS 路径与 CloudSecurityGuard 与 cloud 一致。
+
+server:
+  port: 8080
+  # 经 nginx / LB 时识别 X-Forwarded-*（见 deploy/stack/nginx.conf）
+  forward-headers-strategy: framework
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      pool-name: show-mysql-ec2
+  sql:
+    init:
+      mode: never
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/mysql
+    baseline-on-migrate: true
+    baseline-version: 1
+    validate-on-migrate: true
+
+app:
+  # 与 cloud 相同部署语义：SaaS 运营台、邀请开店、CloudSecurityGuard
+  deployment: cloud
+  security:
+    # 生产默认严格；可通过 APP_SECURITY_STRICT_CLOUD=false 临时放宽（不推荐）
+    strict-cloud: ${APP_SECURITY_STRICT_CLOUD:true}
+  jwt:
+    secret: ${APP_JWT_SECRET}
+    expire-minutes: ${APP_JWT_EXPIRE_MINUTES:720}
+    tenant-aes-key: ${APP_JWT_TENANT_AES_KEY}
+  register:
+    mode: ${APP_REGISTER_MODE:first-only}
+    invite-code: ${APP_REGISTER_INVITE_CODE:}
+  saas:
+    # 首次开平台账号后请设 APP_SAAS_BOOTSTRAP_ENABLED=false
+    bootstrap-enabled: ${APP_SAAS_BOOTSTRAP_ENABLED:false}
+    bootstrap-username: ${APP_SAAS_BOOTSTRAP_USERNAME:platform}
+    # 勿在 yml 写死密码；仅从 app.env 注入
+    bootstrap-password: ${APP_SAAS_BOOTSTRAP_PASSWORD:}
+    invite-code: ${APP_SAAS_INVITE_CODE:}
+  wx:
+    miniapp:
+      enabled: ${APP_WX_MINIAPP_ENABLED:false}
+      app-id: ${APP_WX_MINIAPP_APP_ID:}
+      app-secret: ${APP_WX_MINIAPP_APP_SECRET:}
+      # 生产默认关闭 mock
+      mock: ${APP_WX_MINIAPP_MOCK:false}
+  backup:
+    dir: ${APP_BACKUP_DIR:/root/.show/backups}
+
+logging:
+  level:
+    root: INFO
+    com.ddmo: INFO

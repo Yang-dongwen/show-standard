@@ -1,6 +1,7 @@
 package com.ddmo.saas.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /** SaaS 公开开店：邀请码 + 店长账号，写入共享库 C 端表 */
@@ -11,7 +12,11 @@ public class RegisterShopRequest {
     private String inviteCode;
 
     @NotBlank(message = "用户名不能为空")
-    @Size(max = 32, message = "用户名过长")
+    @Size(min = 3, max = 32, message = "用户名长度须为3-32位")
+    @Pattern(
+        regexp = "^[a-zA-Z][a-zA-Z0-9_]{2,31}$",
+        message = "用户名须字母开头，仅含字母/数字/下划线，不可中文或特殊符号"
+    )
     private String username;
 
     @NotBlank(message = "密码不能为空")

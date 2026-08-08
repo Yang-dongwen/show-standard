@@ -8,7 +8,7 @@ import router from '@/router/index.js'
  */
 export async function request(path, options = {}) {
   const { silent = false, headers, ...rest } = options
-  const token = sessionStorage.getItem('token')
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
   let res
   try {
@@ -41,6 +41,8 @@ export async function request(path, options = {}) {
 
   if (!res.ok || data.success === false) {
     if (res.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
       sessionStorage.removeItem('token')
       sessionStorage.removeItem('user')
       router.push('/login')
@@ -54,7 +56,7 @@ export async function request(path, options = {}) {
 }
 
 export async function requestBlob(path) {
-  const token = sessionStorage.getItem('token')
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   const res = await fetch(path, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   })

@@ -112,11 +112,44 @@ docker compose up -d --build
 
 数据库账号以 `docker-compose.yml` 为准（常见库 `show`）。
 
+> **说明：** 根目录 `docker-compose.yml` 含本机 MySQL，仅用于开发。  
+> **生产**请用 `deploy/`（外部 RDS，compose 内无 MySQL）。
+
 ---
 
-## 服务器部署（简版）
+## AWS EC2 生产部署
 
-1. 服务器装 **JDK 17**、**MySQL**，或只装 Docker 用上面 Compose。  
+| 环境 | Spring profile | 数据源 | 密钥 / 配置 |
+|------|----------------|--------|-------------|
+| **本机开发** | `cloud`（默认） | 本机 MySQL 或根目录 compose 中的 MySQL | `application-cloud.yml` |
+| **AWS 生产** | **`ec2`** | **外部 AWS RDS**（库 `show`） | **`deploy/env/app.env`** + `application-ec2.yml`（仅占位） |
+
+生产路径一句话：
+
+```text
+浏览器 :8090 → nginx → app:8080（profile=ec2）→ RDS MySQL
+```
+
+- 目录与脚本、日常三件事（发代码 / 同步密钥 / 建库）：**[deploy/README.md](../../deploy/README.md)**  
+- 从零 EC2 + RDS：**[deploy/docs/setup.md](../../deploy/docs/setup.md)**  
+- 脚本参数：**[deploy/docs/scripts.md](../../deploy/docs/scripts.md)**  
+- 代码与密钥分离 / CI：**[deploy/docs/cicd.md](../../deploy/docs/cicd.md)**  
+
+要点：
+
+1. 真实密钥只在 `deploy/env/app.env`（gitignore），模板为 `deploy/env/app.env.example`。  
+2. 代码用 `deploy/scripts/deploy-local.ps1` 或 git；密钥只用 `sync-env-local.ps1`。  
+3. `init-rds.sh` 只 `CREATE DATABASE show`；Flyway 在应用启动时迁移。  
+4. 生产默认对外 `http://<IP>:8090/` 与 `http://<IP>:8090/saas/`；与 auto-exchange 共机时用不同目录/端口。  
+5. 生产勿使用开发默认口令 `platform123`；`APP_SECURITY_STRICT_CLOUD=true`，bootstrap 首启后关闭。
+
+---
+
+## 服务器部署（简版 / 非 AWS 模板）
+
+若暂不用 `deploy/` 流水线，也可手搓：
+
+1. 服务器装 **JDK 17**、**MySQL**，或只装 Docker 用上面 Compose（开发向）。  
 2. 上传 / 构建 `ddmo-*.jar`，前端已 `npm run build` 打进 jar 或静态资源。  
 3. 启动示例：
 
@@ -129,7 +162,9 @@ java -Xms256m -Xmx512m -jar ddmo-1.0.0.jar --spring.profiles.active=cloud
    - 改掉默认 `platform123`
    - 配置 `app.security.strict-cloud=true`
    - 关闭或限制 bootstrap 建管理员
-   - 定期备份 MySQL
+   - 定期备份 MySQL  
+
+**推荐生产**仍走 [deploy/README.md](../../deploy/README.md)（profile=`ec2` + RDS）。
 
 ---
 
@@ -152,5 +187,6 @@ java -Xms256m -Xmx512m -jar ddmo-1.0.0.jar --spring.profiles.active=cloud
 | `/saas/` 打不开 | 不是 cloud 模式，或未 build `frontend-saas` |
 | 登录失败 | 运营台用 platform；门店用店长账号；可用运营台重置店长密码 |
 | 和买断数据混了 | 清/换 `install.properties`，确认 profile 是 cloud |
+| EC2 起不来 | 见 [deploy/docs/setup.md](../../deploy/docs/setup.md) 排障；检查 `app.env` 是否仍是占位符 |
 
-买断单机、无 SaaS → 见 [买断客户端.md](./买断客户端.md)。
+买断单机、非 SaaS → 见 [买断客户端.md](./买断客户端.md)。
