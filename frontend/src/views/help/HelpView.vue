@@ -42,13 +42,20 @@
         <el-collapse-item title="6. 导出数据" name="6">
           <p>在会员、交易、报表页可导出 CSV，浏览器会直接下载。会员导出<strong>不含校验码</strong>。</p>
         </el-collapse-item>
-        <el-collapse-item title="7. 桌面安装包退出" name="7">
+        <el-collapse-item title="7. 导入会员（平台迁移）" name="7">
+          <p>
+            进入「会员管理」点击「导入」，先<strong>下载导入模板</strong>，将其他平台会员按列整理后上传 CSV（Excel 请「另存为 CSV UTF-8」）。
+            模板列：会员姓名、手机号、校验码、余额、备注、状态。校验码可空（默认手机后四位）；余额会记一笔「迁移导入」充值流水。
+            手机号与现有会员重复的行会跳过；导出文件因不含校验码，不能直接当导入文件用。
+          </p>
+        </el-collapse-item>
+        <el-collapse-item title="8. 桌面安装包退出" name="8">
           <p>若使用 Windows 桌面安装版：关闭浏览器窗口<strong>不会</strong>停止后台服务。请从任务栏托盘图标右键选择 <strong>Exit Show</strong> 真正退出。再次双击快捷方式会重新打开界面（单实例）。</p>
         </el-collapse-item>
-        <el-collapse-item title="8. 登录账号（用户名）" name="8">
+        <el-collapse-item title="9. 登录账号（用户名）" name="9">
           <p>门店登录用户名在<strong>全平台全局唯一</strong>（云版多店不能都叫 admin）。开店或新增店员账号时请使用可区分的用户名。</p>
         </el-collapse-item>
-        <el-collapse-item title="9. 校验码可见性" name="9">
+        <el-collapse-item title="10. 校验码可见性" name="10">
           <p>默认仅<strong>店长</strong>可在会员列表中查看/点开校验码明文；收银/店员列表显示为「保密」。消费时由会员口述校验码录入即可。</p>
         </el-collapse-item>
       </el-collapse>

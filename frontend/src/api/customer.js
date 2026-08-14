@@ -1,4 +1,4 @@
-import { request } from './http.js'
+import { request, requestForm } from './http.js'
 
 export function fetchCustomers({ keyword = '', page = 1, size = 8 } = {}) {
   return request(
@@ -26,6 +26,13 @@ export function toggleCustomerStatus(id) {
 
 export function fetchBalance(customerId) {
   return request(`/api/accounts/${customerId}/balance`)
+}
+
+/** 上传 CSV 批量导入会员（部分成功） */
+export function importCustomers(file) {
+  const form = new FormData()
+  form.append('file', file)
+  return requestForm('/api/customers/import', form)
 }
 
 /** 下拉远程搜索：只取一页活跃会员，列表已含 balance */

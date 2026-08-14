@@ -15,6 +15,7 @@
       </div>
       <div class="page-toolbar-right">
         <el-button type="primary" :icon="Plus" @click="openCreate">新增会员</el-button>
+        <el-button :icon="Upload" @click="openImport">导入</el-button>
         <el-button :icon="Download" :loading="exporting" @click="handleExport">导出 CSV</el-button>
       </div>
     </div>
@@ -120,16 +121,77 @@
         <el-button type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-drawer>
+
+    <el-dialog
+      v-model="importVisible"
+      title="导入会员"
+      width="560px"
+      destroy-on-close
+      @closed="resetImport"
+    >
+      <div class="import-tips">
+        <p>用于从其他平台迁移会员。请先下载模板，按列整理后上传 <strong>CSV</strong> 文件。</p>
+        <p class="muted">
+          必填：会员姓名、手机号。可选：校验码（默认手机后四位）、余额、备注、状态（正常/停用）。
+          手机号重复的行会跳过，不影响其他行。单次最多 1000 行。
+          Excel 编辑后可直接「另存为 CSV」；系统兼容 UTF-8 与中文 Windows 默认 GBK。
+        </p>
+      </div>
+      <div class="import-actions">
+        <el-button :icon="Download" :loading="templateLoading" @click="downloadTemplate">
+          下载导入模板
+        </el-button>
+      </div>
+      <el-upload
+        ref="uploadRef"
+        class="import-upload"
+        drag
+        :auto-upload="false"
+        :limit="1"
+        accept=".csv,text/csv"
+        :on-change="onImportFileChange"
+        :on-exceed="onImportExceed"
+        :on-remove="onImportRemove"
+      >
+        <div class="el-upload__text">将 CSV 拖到此处，或 <em>点击选择</em></div>
+      </el-upload>
+      <div v-if="importResult" class="import-result">
+        <el-alert
+          :type="importResult.failed ? 'warning' : 'success'"
+          :closable="false"
+          show-icon
+          :title="`导入完成：成功 ${importResult.success}，失败 ${importResult.failed}（共 ${importResult.total} 行）`"
+        />
+        <el-table
+          v-if="importResult.errors && importResult.errors.length"
+          class="import-error-table"
+          :data="importResult.errors"
+          size="small"
+          max-height="220"
+        >
+          <el-table-column prop="row" label="行号" width="70" />
+          <el-table-column prop="phone" label="手机号" min-width="120" />
+          <el-table-column prop="message" label="原因" min-width="180" />
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="importVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="submitImport">
+          开始导入
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Download } from '@element-plus/icons-vue'
+import { Search, Plus, Download, Upload } from '@element-plus/icons-vue'
 import {
   createCustomer,
   fetchCustomers,
+  importCustomers,
   toggleCustomerStatus,
   updateCustomer
 } from '@/api/customer.js'
@@ -147,6 +209,12 @@ const loading = ref(false)
 const saving = ref(false)
 const exporting = ref(false)
 const drawerVisible = ref(false)
+const importVisible = ref(false)
+const importing = ref(false)
+const templateLoading = ref(false)
+const importFile = ref(null)
+const importResult = ref(null)
+const uploadRef = ref()
 const listKeyword = ref('')
 const customers = ref([])
 const verifyVisible = reactive({})
@@ -314,6 +382,75 @@ async function handleExport() {
   }
 }
 
+function openImport() {
+  resetImport()
+  importVisible.value = true
+}
+
+function resetImport() {
+  importFile.value = null
+  importResult.value = null
+  importing.value = false
+  templateLoading.value = false
+  uploadRef.value?.clearFiles?.()
+}
+
+function onImportFileChange(file) {
+  const raw = file?.raw
+  if (!raw) {
+    importFile.value = null
+    return
+  }
+  const name = (raw.name || '').toLowerCase()
+  if (!name.endsWith('.csv')) {
+    ElMessage.warning('请上传 .csv 文件')
+    uploadRef.value?.clearFiles?.()
+    importFile.value = null
+    return
+  }
+  importFile.value = raw
+  importResult.value = null
+}
+
+function onImportExceed() {
+  ElMessage.warning('一次只能选择一个文件，请先移除已选文件')
+}
+
+function onImportRemove() {
+  importFile.value = null
+}
+
+async function downloadTemplate() {
+  templateLoading.value = true
+  try {
+    await downloadWithAuth('/api/customers/import-template', 'customer-import-template.csv')
+  } finally {
+    templateLoading.value = false
+  }
+}
+
+async function submitImport() {
+  if (!importFile.value) {
+    ElMessage.warning('请先选择 CSV 文件')
+    return
+  }
+  importing.value = true
+  try {
+    const data = await importCustomers(importFile.value)
+    importResult.value = data || { total: 0, success: 0, failed: 0, errors: [] }
+    if (data?.success > 0) {
+      ElMessage.success(`成功导入 ${data.success} 位会员`)
+      await load()
+    } else if (data?.failed > 0) {
+      ElMessage.warning('导入未成功，请查看失败原因')
+    }
+  } catch {
+    // handled by requestForm
+  } finally {
+    importing.value = false
+  }
+}
+
 onMounted(async () => {
   await load()
   if (registerRefresh) unregister = registerRefresh(load)
@@ -334,5 +471,25 @@ onUnmounted(() => {
 .muted {
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+.import-tips {
+  margin-bottom: 12px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+.import-tips p {
+  margin: 0 0 6px;
+}
+.import-actions {
+  margin-bottom: 12px;
+}
+.import-upload {
+  width: 100%;
+}
+.import-result {
+  margin-top: 16px;
+}
+.import-error-table {
+  margin-top: 10px;
 }
 </style>

@@ -103,6 +103,16 @@ public class BarbershopService {
 
     @Transactional
     public Customer createCustomer(CustomerRequest request) {
+        return doCreateCustomer(request, "初次充值");
+    }
+
+    /** 会员迁移导入：余额记为「迁移导入」充值流水。 */
+    @Transactional
+    public Customer createCustomerForImport(CustomerRequest request) {
+        return doCreateCustomer(request, "迁移导入");
+    }
+
+    private Customer doCreateCustomer(CustomerRequest request, String initialRechargeRemark) {
         if (request == null) {
             throw new IllegalArgumentException("请求不能为空");
         }
@@ -133,18 +143,26 @@ public class BarbershopService {
         BigDecimal init = normalizeAmountNonNegative(request.getInitialRechargeAmount(), "初次充值金额");
         if (init != null) {
             if (init.compareTo(BigDecimal.ZERO) > 0) {
+                String rechargeRemark = (initialRechargeRemark == null || initialRechargeRemark.isBlank())
+                    ? "初次充值" : initialRechargeRemark.trim();
                 creditBalance(tenantId, id, init);
                 long rechargeId = idGenerator.nextId();
                 jdbcTemplate.update("""
                         INSERT INTO t_recharge_record(id, tenant_id, customer_id, amount, remark, status, created_at)
                         VALUES (?, ?, ?, ?, ?, 'normal', CURRENT_TIMESTAMP)
                         """,
-                    rechargeId, tenantId, id, init, "初次充值");
+                    rechargeId, tenantId, id, init, rechargeRemark);
                 recordLog("CREATE_RECHARGE", "recharge", String.valueOf(rechargeId),
-                    "会员 " + name + " 初次充值 " + init);
+                    "会员 " + name + " " + rechargeRemark + " " + init);
             }
         }
         return forApi(getCustomerById(tenantId, String.valueOf(id)));
+    }
+
+    /** 导入汇总审计（不替代单条 CREATE 日志）。 */
+    public void recordCustomerImportSummary(int success, int failed, int total) {
+        recordLog("IMPORT_CUSTOMERS", "customer", "",
+            "导入会员完成: 成功 " + success + " / 失败 " + failed + " / 共 " + total);
     }
 
     @Transactional
